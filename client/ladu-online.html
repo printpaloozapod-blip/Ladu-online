@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ladu — Asad's Rules</title>
+<style>
+  :root{
+    --red:#e53935; --green:#43a047; --amber:#f9a825; --blue:#1e88e5;
+    --ink:#16110c; --panel:#221a12; --panel2:#2b2115; --line:#453723; --txt:#f3ead9; --dim:#b8a888;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  body{background:radial-gradient(1200px 620px at 50% -10%, #2e2114, var(--ink) 70%);min-height:100vh;}
+  .wrap{max-width:520px;margin:0 auto;padding:10px 10px 26px;}
+  header{display:flex;align-items:baseline;justify-content:space-between;padding:4px 2px 8px;}
+  h1{font-size:30px;margin:0;letter-spacing:3px;font-weight:900;}
+  h1 .dot{color:var(--amber);}
+  .sub{color:var(--dim);font-size:12px;margin-top:2px;}
+  .topbtns{display:flex;gap:6px;}
+  button{font-family:inherit;border:0;border-radius:10px;cursor:pointer;font-weight:700;}
+  .ghost{background:var(--panel2);color:var(--txt);border:1px solid var(--line);padding:8px 10px;font-size:13px;}
+  .scores{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;}
+  .score{display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 8px;font-size:12px;}
+  .score .pip{width:14px;height:14px;border-radius:50%;flex:0 0 auto;border:2px solid rgba(255,255,255,.35);}
+  .score b{font-size:12px;}
+  .score .home{margin-left:auto;color:var(--dim);font-size:12px;white-space:nowrap;}
+  .score.turn{outline:2px solid #fff3;box-shadow:0 0 0 2px #ffffff22;}
+  .score .team{color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.5px;}
+  .banner{border-radius:12px;padding:11px 14px;font-size:16px;font-weight:800;min-height:46px;display:flex;align-items:center;gap:8px;margin-bottom:8px;transition:background .3s;background:var(--panel2);border:1px solid var(--line);}
+  .banner .who{width:18px;height:18px;border-radius:50%;flex:0 0 auto;border:2px solid rgba(255,255,255,.65);background:#fff3;}
+  .yard.activeYard{animation:yardPulse .8s ease-in-out infinite alternate;z-index:3;}
+  @keyframes yardPulse{from{box-shadow:0 0 0 2px #ffffff88,0 0 4px 1px #ffffff55;}to{box-shadow:0 0 0 4px #fff,0 0 16px 5px #ffffffaa;}}
+  #rollBtn.ready{animation:btnPulse .7s ease-in-out infinite alternate;}
+  @keyframes btnPulse{from{transform:scale(1);}to{transform:scale(1.035);box-shadow:0 4px 0 #b97f0e,0 0 14px 3px #f9a82588;}}
+  /* BOARD */
+  .boardWrap{position:relative;width:100%;aspect-ratio:1/1;border-radius:16px;overflow:hidden;border:6px solid #33241a;background:linear-gradient(135deg,#7a5230,#5b3a20 55%,#6e4a2a);box-shadow:0 10px 34px rgba(0,0,0,.55);}
+  .cell{position:absolute;border:1px solid #c9b586;background:#eee1c2;display:flex;align-items:center;justify-content:center;}
+  .cell.alt{background:#e4d2a9;}
+  .cell .num{font-size:clamp(7px,2vw,11px);color:#8a6d3b;font-weight:800;pointer-events:none;}
+  .cell.entry{background:#fff;}
+  .cell.mouth{background:#ecd07c;box-shadow:inset 0 0 0 2px #8a6d3b88;}
+  .cell.mouth .num{color:#6b4e12;font-size:clamp(8px,2.2vw,12px);}
+  .cell.safeIco::after{content:"★";position:absolute;top:0px;right:1px;font-size:8px;color:#d4a017;}
+  .yard{position:absolute;border-radius:10px;display:flex;align-items:center;justify-content:center;}
+  .yard::before{content:"";position:absolute;inset:0;border-radius:10px;background:repeating-linear-gradient(45deg,rgba(255,255,255,.08) 0 6px,transparent 6px 12px),repeating-linear-gradient(-45deg,rgba(0,0,0,.10) 0 6px,transparent 6px 12px);pointer-events:none;}
+  .yard .inner{width:72%;height:72%;background:linear-gradient(160deg, rgba(0,0,0,.16), rgba(0,0,0,.46));border-radius:10px;position:relative;z-index:1;}
+  .crestTxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:Georgia,'Times New Roman',serif;font-weight:900;font-size:clamp(19px,5.6vw,32px);letter-spacing:1px;opacity:.5;pointer-events:none;}
+  .yardName{position:absolute;left:0;right:0;bottom:1px;text-align:center;font-size:clamp(7px,1.9vw,10px);font-weight:800;letter-spacing:1.5px;text-transform:uppercase;pointer-events:none;}
+  .slot{position:absolute;width:34%;height:34%;border-radius:50%;background:#0000000d;}
+  .centerHome{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 42%, #3f9142, #2e7d32 58%, #1b5e20);color:#fff;gap:0;text-align:center;box-shadow:inset 0 0 0 3px #f3d27a;}
+  .centerHome::after{content:"";position:absolute;inset:15%;border:2px solid rgba(255,255,255,.7);border-radius:50%;pointer-events:none;}
+  .centerHome .star{font-size:clamp(15px,4vw,24px);line-height:1;color:#f3d27a;text-shadow:0 1px 3px rgba(0,0,0,.4);}
+  .centerHome .t{font-size:clamp(9px,2.6vw,13px);font-weight:900;letter-spacing:2px;}
+  .centerHome .s{font-size:clamp(8px,2.2vw,11px);color:#eaf4ff;}
+  .piece{position:absolute;border-radius:50%;border:2px solid rgba(0,0,0,.4);box-shadow:0 1px 3px rgba(0,0,0,.5), inset 0 0 0 2px rgba(255,255,255,.5), inset 0 -3px 5px rgba(0,0,0,.25), inset 0 2px 3px rgba(255,255,255,.45);z-index:5;transition:left .13s linear, top .13s linear;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;text-shadow:0 1px 2px rgba(0,0,0,.6);}
+  .piece.mini{border-width:1px;}
+  .piece.glow{animation:glow .7s ease-in-out infinite alternate;cursor:pointer;z-index:8;}
+  @keyframes glow{from{box-shadow:0 0 0 2px #fff,0 0 6px 2px #ffd54a;}to{box-shadow:0 0 0 3px #ffd54a,0 0 14px 5px #ffd54a;}}
+  .piece.dead{animation:die .45s ease-in;}
+  @keyframes die{30%{transform:scale(1.5) rotate(25deg);}100%{transform:scale(.2) rotate(-30deg);opacity:.2;}}
+  .piece.done{opacity:.85;}
+  /* CONTROLS */
+  .controls{display:flex;align-items:center;gap:10px;margin-top:10px;}
+  .dice{display:flex;gap:8px;}
+  .die{width:52px;height:52px;background:#f6ecd7;border-radius:12px;position:relative;box-shadow:0 3px 8px rgba(0,0,0,.4);}
+  .die .p{position:absolute;width:11px;height:11px;border-radius:50%;background:#2a1f14;}
+  .die.rolling{animation:shake .45s ease-in-out;}
+  @keyframes shake{0%{transform:rotate(0)}25%{transform:rotate(-14deg) translateY(-4px)}50%{transform:rotate(11deg)}75%{transform:rotate(-7deg) translateY(2px)}100%{transform:rotate(0)}}
+  .die.spent{opacity:.28;}
+  #rollBtn{flex:1;background:var(--amber);color:#221a02;font-size:17px;padding:14px 10px;border-radius:12px;box-shadow:0 4px 0 #b97f0e;}
+  #rollBtn:disabled{background:#3a3f52;color:#7c8499;box-shadow:none;}
+  .actions{display:none;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .actions.show{display:flex;}
+  .actions button{background:#2b3fbd;color:#fff;padding:10px 12px;font-size:14px;border-radius:10px;}
+  .actions .lbl{width:100%;color:var(--dim);font-size:12px;}
+  .log{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-top:10px;padding:8px 12px;font-size:13px;min-height:64px;}
+  .log div{padding:2px 0;color:#d7dbe8;}
+  .log div:first-child{color:#fff;font-weight:600;}
+  .modal{position:fixed;inset:0;background:rgba(5,6,10,.78);display:none;align-items:center;justify-content:center;padding:16px;z-index:50;}
+  .modal.show{display:flex;}
+  .sheet{background:var(--panel);border:1px solid var(--line);border-radius:16px;max-width:480px;width:100%;max-height:86vh;overflow:auto;padding:18px;}
+  .sheet h2{margin:0 0 8px;font-size:20px;}
+  .sheet li{margin:6px 0;font-size:14px;line-height:1.45;color:#d7dbe8;}
+  .sheet .close{width:100%;margin-top:12px;background:var(--amber);color:#221a02;padding:12px;font-size:15px;}
+  .win{font-size:22px;text-align:center;}
+  .sheet input.idIn{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);font-size:15px;margin:5px 0;}
+  .sheet h3{margin:16px 0 2px;font-size:14px;}
+  .idMsg{color:#ff9a8a;font-size:12px;min-height:15px;margin-top:4px;}
+  .acctRow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;margin:5px 0;background:var(--panel2);cursor:pointer;}
+  .acctRow .rec{color:var(--dim);font-size:12px;}
+  .acctRow .play{color:var(--amber);font-weight:800;font-size:13px;}
+  .chipBtn{align-self:flex-start;margin-top:7px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:700;cursor:pointer;}
+  .histRow{display:flex;justify-content:space-between;gap:8px;padding:7px 2px;border-bottom:1px solid var(--line);font-size:12.5px;}
+  .histRow .rW{color:#7dd87d;font-weight:900;}
+  .histRow .rL{color:#ff9a8a;font-weight:900;}
+  .clubGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+  .clubCard{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px;border-radius:12px;border:2px solid var(--line);background:var(--panel2);color:var(--txt);text-align:left;cursor:pointer;}
+  .clubCard:active{transform:scale(.98);}
+  .clubCard .band{width:100%;height:9px;border-radius:5px;margin-bottom:7px;}
+  .clubCard b{font-size:16px;}
+  .clubCard span{color:var(--dim);font-size:12px;}
+  .clubCard .motto{font-style:italic;font-size:11px;}
+
+  #idModal, #profileModal{z-index:60;}
+  .seatGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+  .seatCard{border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--panel2);}
+  .seatBand{height:7px;border-radius:4px;margin-bottom:7px;}
+  .seatHead{font-size:11px;color:var(--dim);font-weight:700;letter-spacing:.4px;text-transform:uppercase;}
+  .seatClub{font-size:16px;font-weight:800;margin:2px 0;}
+  .seatOcc{font-size:12.5px;margin-bottom:6px;}
+  .dim{color:var(--dim);}
+  .clubRow{display:flex;gap:5px;margin:6px 0;}
+  .clubChip{border:2px solid transparent;border-radius:8px;padding:4px 8px;font-weight:900;font-size:12px;cursor:pointer;}
+  .clubChip.sel{border-color:#fff;}
+  .clubChip:disabled{opacity:.25;cursor:default;}
+  .miniBtn{background:var(--amber);color:#221a02;border:0;border-radius:8px;padding:7px 12px;font-weight:800;font-size:13px;cursor:pointer;margin-top:4px;}
+  .ghostBtn{background:transparent;color:var(--txt);border:1px solid var(--line);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>LADU<span class="dot">.</span></h1>
+      <div class="sub" id="subTitle">Online rooms · 2v2</div>
+      <button class="chipBtn" id="profileChip">👤 Sign in</button>
+    </div>
+    <div class="topbtns">
+      <button class="ghost" id="soundBtn">🔊</button>
+      <button class="ghost" id="rulesBtn">Rules</button>
+      <button class="ghost" id="newBtn">🏠 Lobby</button>
+    </div>
+  </header>
+
+  <div class="scores" id="scores"></div>
+  <div class="banner"><span class="who" id="bannerDot"></span><span id="bannerTxt">Your turn — roll the dice.</span></div>
+
+  <div class="boardWrap" id="board"></div>
+
+  <div class="controls">
+    <div class="dice">
+      <div class="die" id="die0"></div>
+      <div class="die" id="die1"></div>
+    </div>
+    <button id="rollBtn">🎲 Roll dice</button>
+  </div>
+  <div class="actions" id="actions"></div>
+  <div class="log" id="log"></div>
+</div>
+
+<div class="modal" id="rulesModal">
+  <div class="sheet">
+    <h2>Asad's rules</h2>
+    <ul>
+      <li><b>Two dice.</b> Split them between pieces however you like, but each die is spent whole.</li>
+      <li><b>Getting out:</b> a 6 on either die brings a piece in — double 6s bring two in. Any double can bring one in too, but then the whole roll is spent.</li>
+      <li><b>Extra rolls:</b> roll again when you roll a 6 and after every kill. But a 6 rolled right after a kill earns nothing. Doubles alone earn nothing.</li>
+      <li><b>Forced kill:</b> if a kill is sitting there with ONE die, you must take it — even your own partner. A kill that needs two moves is your choice, never forced. Multiple kills available? You pick which.</li>
+      <li><b>Backward kill:</b> roll a 1 and an enemy sits exactly one square behind you — you kill backwards. Not from an entry square.</li>
+      <li><b>Safe squares:</b> only the four entry squares (★). Safe for everyone standing on them.</li>
+      <li><b>Stacks are walls:</b> 2+ of your pieces on a square = locked. Nobody can kill it, land on it, or pass it — not even you. Land exactly on it or unlock it.</li>
+      <li><b>Door lock:</b> your stack alone on someone's entry square means they can't bring pieces in.</li>
+      <li><b>Home column:</b> the 12 square on top is shared and exposed; the 5 squares under it are private. From the 12, any dice combo totaling 6 takes the piece home. Overshoot can't be used on a piece.</li>
+      <li><b>Second hand:</b> get all 4 home and you sit one round out, then your turns move your partner's pieces.</li>
+      <li>First team with all 8 pieces home wins.</li>
+    </ul>
+    <button class="close" id="rulesClose">Close</button>
+  </div>
+</div>
+
+<div class="modal" id="winModal">
+  <div class="sheet win">
+    <h2 id="winTxt">🏆</h2>
+    <p id="winSub" style="color:var(--dim)"></p>
+    <button class="close" id="winAgain">Play again</button>
+  </div>
+</div>
+
+<div class="modal show" id="idModal">
+  <div class="sheet">
+    <h2>Who's playing?</h2>
+    <p style="color:var(--dim);font-size:13px;margin:4px 0 0">Create an account to keep your win/loss record, or play as a guest — guests aren't saved.</p>
+    <div id="acctList"></div>
+    <div id="loginBox" style="display:none">
+      <p style="margin:8px 0 0"><b id="loginName"></b> — enter your PIN:</p>
+      <input class="idIn" id="pinInput" type="password" inputmode="numeric" maxlength="4" placeholder="4-digit PIN">
+      <button class="close" id="loginBtn">Log in &amp; play</button>
+      <div class="idMsg" id="loginMsg"></div>
+    </div>
+    <h3>Create account</h3>
+    <input class="idIn" id="newName" maxlength="16" placeholder="Your name">
+    <input class="idIn" id="newPin" type="password" inputmode="numeric" maxlength="4" placeholder="Choose a 4-digit PIN">
+    <button class="close" id="createBtn" style="background:var(--panel2);color:var(--txt);border:1px solid var(--line)">Create account &amp; play</button>
+    <div class="idMsg" id="createMsg"></div>
+    <h3>Play as guest</h3>
+    <input class="idIn" id="guestName" maxlength="16" placeholder="Guest name (optional)">
+    <button class="close" id="guestBtn" style="background:var(--panel2);color:var(--txt);border:1px solid var(--line)">Play as guest</button>
+    <p style="color:var(--dim);font-size:11px;margin:10px 0 0">Accounts live on this device for now — online accounts arrive with multiplayer, and your records will carry over.</p>
+    <button class="close" id="idBack" style="display:none;background:transparent;color:var(--dim)">Back</button>
+  </div>
+</div>
+
+<div class="modal" id="profileModal">
+  <div class="sheet">
+    <h2 id="profTitle">Profile</h2>
+    <p id="profRecord" style="color:var(--dim);font-size:13.5px;margin:4px 0 0"></p>
+    <div id="profHistory" style="margin-top:8px"></div>
+    <button class="close" id="switchBtn">Switch player</button>
+    <button class="close" id="deleteBtn" style="display:none;background:transparent;color:#ff9a8a">Delete my account</button>
+    <button class="close" id="profClose" style="background:var(--panel2);color:var(--txt);border:1px solid var(--line)">Close</button>
+  </div>
+</div>
+
+
+<div class="modal" id="modeModal">
+  <div class="sheet">
+    <h2>Play online</h2>
+    <p style="color:var(--dim);font-size:13px;margin:4px 0 0">Create a room and send the link to family — or join theirs with the 4-letter code. Empty seats are played by the computer.</p>
+    <button class="close" id="createBtn2">Create a room</button>
+    <h3>Join a room</h3>
+    <input class="idIn" id="joinCode" maxlength="4" placeholder="Room code (e.g. KQ7M)" style="text-transform:uppercase">
+    <button class="close" id="joinBtn" style="background:var(--panel2);color:var(--txt);border:1px solid var(--line)">Join room</button>
+    <div class="idMsg" id="modeMsg"></div>
+    <p style="margin:12px 0 0"><a href="/solo" style="color:var(--amber)">Or play solo vs the computer →</a></p>
+  </div>
+</div>
+
+<div class="modal" id="lobbyModal">
+  <div class="sheet">
+    <h2>Room <span id="roomCodeBig" style="color:var(--amber)"></span></h2>
+    <p style="color:var(--dim);font-size:13px;margin:4px 0 0">Send this link to your family — they open it, sign in, take a seat, and pick a club:</p>
+    <p id="roomLink" style="font-size:12.5px;word-break:break-all;background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:8px 0"></p>
+    <button class="close" id="copyLinkBtn" style="background:var(--panel2);color:var(--txt);border:1px solid var(--line)">Copy invite link</button>
+    <div class="seatGrid" id="seatGrid"></div>
+    <p id="specLine" style="color:var(--dim);font-size:12px"></p>
+    <button class="close" id="startBtn">Start game</button>
+    <p id="lobbyWait" style="color:var(--dim);font-size:12.5px"></p>
+    <button class="close" id="closeLobbyBtn" style="display:none;background:var(--panel2);color:var(--txt);border:1px solid var(--line)">Back to game</button>
+    <button class="close" id="leaveBtn" style="background:transparent;color:#ff9a8a">Leave room</button>
+  </div>
+</div>
+
+<script id="engine">
+"use strict";
+/* ============ LADU ENGINE (Asad's rules) — pure logic, no DOM ============ */
+const STARTS = [51, 12, 25, 38];           // track index of each player's entry square (arm tip, beside its 12)
+const PARTNER = [2, 3, 0, 1];              // 2v2 teams: 0&2, 1&3
+const TRACK = [ // [row,col] on a 15x15 board, travel order
+  [6,1],[6,2],[6,3],[6,4],[6,5],[5,6],[4,6],[3,6],[2,6],[1,6],[0,6],[0,7],[0,8],
+  [1,8],[2,8],[3,8],[4,8],[5,8],[6,9],[6,10],[6,11],[6,12],[6,13],[6,14],[7,14],[8,14],
+  [8,13],[8,12],[8,11],[8,10],[8,9],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[14,7],[14,6],
+  [13,6],[12,6],[11,6],[10,6],[9,6],[8,5],[8,4],[8,3],[8,2],[8,1],[8,0],[7,0],[6,0]
+];
+const COLUMNS = [ // private home-column cells, mouth -> deep (progress 52..56)
+  [[7,1],[7,2],[7,3],[7,4],[7,5]],
+  [[1,7],[2,7],[3,7],[4,7],[5,7]],
+  [[7,13],[7,12],[7,11],[7,10],[7,9]],
+  [[13,7],[12,7],[11,7],[10,7],[9,7]]
+];
+const HOME = 57; // progress value = finished
+
+function newGame(){
+  return {
+    players: [0,1,2,3].map(()=>({ pieces:[-1,-1,-1,-1], finished:false, satOut:false })),
+    turn: 0, winner: null
+  };
+}
+function cloneState(s){ return JSON.parse(JSON.stringify(s)); }
+function trackIdx(p, q){ return (STARTS[p] + q) % 52; }        // q in 0..51
+function mouthIdx(p){ return (STARTS[p] + 51) % 52; }
+function isEntryIdx(idx){ return STARTS.indexOf(idx) >= 0; }
+function cellKey(p, q){
+  if (q < 0) return "Y" + p;
+  if (q <= 51) return "T" + trackIdx(p, q);
+  if (q <= 56) return "C" + p + ":" + (q - 52);
+  return "H" + p;
+}
+function cellCoord(p, q){
+  if (q <= 51) return TRACK[trackIdx(p, q)];
+  if (q <= 56) return COLUMNS[p][q - 52];
+  return null;
+}
+function buildOcc(s){
+  const occ = new Map();
+  s.players.forEach((pl, p)=>pl.pieces.forEach((q, i)=>{
+    if (q < 0 || q >= HOME) return;
+    const k = cellKey(p, q);
+    if (!occ.has(k)) occ.set(k, []);
+    occ.get(k).push({ p, i });
+  }));
+  return occ;
+}
+function stackOwnerAt(occ, key){
+  const list = occ.get(key) || [];
+  const counts = {};
+  list.forEach(e=>{ counts[e.p] = (counts[e.p]||0) + 1; });
+  for (const p in counts) if (counts[p] >= 2) return parseInt(p);
+  return null;
+}
+function landingInfo(occ, key, mover){
+  const so = stackOwnerAt(occ, key);
+  if (so !== null) return { legal: so === mover, kills: [] };       // own stack: join it; enemy stack: locked
+  const list = occ.get(key) || [];
+  if (key[0] === "T" && isEntryIdx(parseInt(key.slice(1)))) return { legal: true, kills: [] }; // entry = safe for all
+  return { legal: true, kills: list.filter(e => e.p !== mover) };
+}
+/* All single-die actions for the player who OWNS the pieces (owner). */
+function actionsForDie(s, owner, die){
+  const occ = buildOcc(s);
+  const pl = s.players[owner];
+  const acts = [];
+  pl.pieces.forEach((q, i)=>{
+    if (q >= HOME) return;
+    if (q < 0){ // in the yard: only a 6 brings a piece in
+      if (die === 6){
+        const key = "T" + STARTS[owner];
+        if (landingInfo(occ, key, owner).legal) acts.push({ type:"enter", piece:i, die, to:0 });
+      }
+      return;
+    }
+    // forward move
+    const nq = q + die;
+    if (nq <= HOME){
+      let ok = true;
+      for (let step = q + 1; step < nq; step++){
+        if (stackOwnerAt(occ, cellKey(owner, step)) !== null){ ok = false; break; } // can't pass any stack
+      }
+      if (ok && nq < HOME){
+        const li = landingInfo(occ, cellKey(owner, nq), owner);
+        if (!li.legal) ok = false;
+        else acts.push({ type:"move", piece:i, die, from:q, to:nq, kills: li.kills });
+      }
+      if (ok && nq === HOME) acts.push({ type:"move", piece:i, die, from:q, to:HOME, kills: [] });
+    }
+    // backward kill: rolled a 1, target exactly one square behind, not from / onto an entry square
+    if (die === 1 && q >= 1 && q <= 51){
+      const myIdx = trackIdx(owner, q);
+      if (!isEntryIdx(myIdx)){
+        const tIdx = trackIdx(owner, q - 1);
+        if (!isEntryIdx(tIdx)){
+          const list = occ.get("T" + tIdx) || [];
+          if (list.length === 1 && list[0].p !== owner)
+            acts.push({ type:"back", piece:i, die, from:q, to:q - 1, kills:[list[0]] });
+        }
+      }
+    }
+  });
+  return acts;
+}
+/* Apply an action to state s (mutates). Returns event info. */
+function applyAction(s, owner, a){
+  const pl = s.players[owner];
+  const ev = { kills: [], entered:false, homed:false };
+  if (a.type === "enter" || a.type === "enterDouble"){
+    pl.pieces[a.piece] = 0; ev.entered = true; return ev;
+  }
+  const kills = a.kills || [];
+  kills.forEach(v => { s.players[v.p].pieces[v.i] = -1; ev.kills.push(v); });
+  pl.pieces[a.piece] = a.to;
+  if (a.to === HOME){
+    ev.homed = true;
+    if (pl.pieces.every(q => q === HOME)) pl.finished = true;
+  }
+  const team = owner % 2;
+  const teamHome = [0,1,2,3].filter(p => p % 2 === team)
+    .reduce((n, p) => n + s.players[p].pieces.filter(q => q === HOME).length, 0);
+  if (teamHome === 8) s.winner = team;
+  return ev;
+}
+/* Enumerate every way to spend the rolled dice (plans), incl. partial spends. */
+function enumeratePlans(s, owner, dice){
+  const plans = [];
+  function rec(state, diceLeft, actions, kills, diceUsed, victims){
+    plans.push({ actions: actions.slice(), kills, diceUsed, victims: victims.slice(), finalState: state });
+    if (!diceLeft.length) return;
+    const triedValues = {};
+    diceLeft.forEach((die, di)=>{
+      if (triedValues[die]) return;                    // equal dice are interchangeable — branch once per value
+      triedValues[die] = 1;
+      const rest = diceLeft.slice(0, di).concat(diceLeft.slice(di + 1));
+      actionsForDie(state, owner, die).forEach(a=>{
+        const ns = cloneState(state);
+        const ev = applyAction(ns, owner, a);
+        rec(ns, rest, actions.concat([a]), kills + ev.kills.length, diceUsed + 1, victims.concat(ev.kills.map(v=>v.p)));
+      });
+    });
+    // doubles can bring a piece in, but the WHOLE roll is spent
+    if (dice.length === 2 && diceLeft.length === 2 && dice[0] === dice[1] && dice[0] !== 6){
+      const yardPiece = state.players[owner].pieces.findIndex(q => q < 0);
+      if (yardPiece >= 0){
+        const occ = buildOcc(state);
+        if (landingInfo(occ, "T" + STARTS[owner], owner).legal){
+          const a = { type:"enterDouble", piece:yardPiece, die:dice[0] };
+          const ns = cloneState(state);
+          applyAction(ns, owner, a);
+          plans.push({ actions:[a], kills:0, diceUsed:2, victims:[], finalState: ns });
+        }
+      }
+    }
+  }
+  rec(cloneState(s), dice.slice(), [], 0, 0, []);
+  return plans;
+}
+/* Plan preference only: use as many dice as possible. (Forced-kill is handled separately — direct kills only.) */
+function filterPlans(plans){
+  const useful = plans.filter(pl => pl.diceUsed > 0);
+  if (!useful.length) return [];
+  const maxDice = Math.max.apply(null, useful.map(pl => pl.diceUsed));
+  return useful.filter(pl => pl.diceUsed === maxDice);
+}
+function legalPlans(s, owner, dice){
+  return filterPlans(enumeratePlans(s, owner, dice));
+}
+/* --- Forced kill = DIRECT kill only: a kill available with ONE die from the roll's starting position.
+       A kill that needs two moves is legal to take but is NEVER forced. --- */
+function directKillsAt(s, owner, dice){
+  const out = [], seen = {};
+  dice.forEach(die=>{
+    actionsForDie(s, owner, die).forEach(a=>{
+      if ((a.kills||[]).length){
+        const key = a.piece + ":" + a.die + ":" + a.to;
+        if (!seen[key]){ seen[key] = 1; out.push({ piece:a.piece, die:a.die, to:a.to }); }
+      }
+    });
+  });
+  return out;
+}
+function matchesDirectKill(a, dks, movedPieces){
+  if (!(a.kills||[]).length) return false;
+  if (movedPieces.indexOf(a.piece) >= 0) return false;   // the piece already moved this roll — no longer the direct kill
+  return dks.some(dk => dk.piece === a.piece && dk.die === a.die && dk.to === a.to);
+}
+function directKillAvailable(s, owner, remainingDice, dks, movedPieces){
+  return dks.some(dk => movedPieces.indexOf(dk.piece) < 0 && remainingDice.indexOf(dk.die) >= 0 &&
+    actionsForDie(s, owner, dk.die).some(a => a.piece === dk.piece && a.to === dk.to && (a.kills||[]).length));
+}
+/* Legal single-die step actions for interactive (human) play, with the direct-kill force applied. */
+function allowedStepActions(s, owner, remainingDice, rollInfo){
+  const cand = [], seen = {};
+  const values = [];
+  remainingDice.forEach(d=>{ if (values.indexOf(d) < 0) values.push(d); });
+  values.forEach(die=>{
+    actionsForDie(s, owner, die).forEach(a=>{
+      const key = a.type + ":" + a.piece + ":" + a.die;
+      if (!seen[key]){ seen[key] = 1; cand.push(a); }
+    });
+  });
+  if (remainingDice.length === 2 && remainingDice[0] === remainingDice[1] && remainingDice[0] !== 6){
+    const yardPiece = s.players[owner].pieces.findIndex(q => q < 0);
+    if (yardPiece >= 0 && landingInfo(buildOcc(s), "T" + STARTS[owner], owner).legal)
+      cand.push({ type:"enterDouble", piece:yardPiece, die:remainingDice[0] });
+  }
+  if (!rollInfo || !rollInfo.mustKill || rollInfo.killSatisfied) return cand;
+  const dks = rollInfo.directKills, moved = rollInfo.movedPieces;
+  return cand.filter(a=>{
+    if (matchesDirectKill(a, dks, moved)) return true;
+    if ((a.kills||[]).length) return false;              // any other capture would dodge the forced kill
+    const ns = cloneState(s); applyAction(ns, owner, a);
+    const rem = remainingDice.slice();
+    if (a.type === "enterDouble") rem.length = 0;
+    else { const ix = rem.indexOf(a.die); if (ix >= 0) rem.splice(ix, 1); }
+    return directKillAvailable(ns, owner, rem, dks, moved.concat([a.piece])); // neutral move only if the direct kill survives it
+  });
+}
+/* Does this full plan take one of the roll-start direct kills? (AI force check.) */
+function planSatisfiesForce(plan, dks){
+  if (!dks.length) return true;
+  const moved = [];
+  for (const a of plan.actions){
+    if (matchesDirectKill(a, dks, moved)) return true;
+    moved.push(a.piece);
+  }
+  return false;
+}
+/* Extra roll? kills always earn one; a 6 earns one unless this roll was earned by a kill. */
+function earnsExtraRoll(dice, kills, rollSource){
+  if (kills > 0) return true;
+  if (dice.indexOf(6) >= 0 && rollSource !== "kill") return true;
+  return false;
+}
+/* Who moves this turn: a finished player who already sat out a round plays their partner's hand. */
+function turnOwner(s){
+  const t = s.turn, pl = s.players[t];
+  if (pl.finished && pl.satOut) return PARTNER[t];
+  return t;
+}
+</script>
+
+<script>
+"use strict";
+/* ============ LADU ONLINE — UI + net client ============ */
+/* ============ CLUBS (Premier League edition) ============ */
+const CLUBS = [
+  { name:"Arsenal",    short:"ARS", initials:"AFC",  color:"#ee2737", deep:"#8c1116", trim:"#e8c874", txt:"#ffffff", nick:"The Gunners",   motto:"Victoria Concordia Crescit" },
+  { name:"Liverpool",  short:"LIV", initials:"LFC",  color:"#00a35c", deep:"#0a4d2e", trim:"#f0b323", txt:"#ffffff", nick:"The Reds",      motto:"You'll Never Walk Alone" },
+  { name:"Man City",   short:"MCI", initials:"MCFC", color:"#6cabdd", deep:"#14406b", trim:"#ffffff", txt:"#0b2a4a", nick:"The Citizens",  motto:"Superbia in Proelio" },
+  { name:"Man United", short:"MUN", initials:"MUFC", color:"#ffd400", deep:"#211d1d", trim:"#ffd400", txt:"#221a02", nick:"The Red Devils", motto:"Red Devils" }
+];
+let seatClub = [0, 1, 2, 3];
+let COLORS = [], YARDCOLORS = [], NAMES = [], CLUBNAMES = [];
+let identity = null;                          // { mode:'account'|'guest', name, key?, sWins, sLosses }
+
+/* ============ PLAYER ACCOUNTS (device-local profiles, shared with the solo game) ============ */
+const LS_KEY = "ladu_profiles_v1";
+function loadStore(){ try { return JSON.parse(localStorage.getItem(LS_KEY)) || { accounts:{} }; } catch(e){ return { accounts:{} }; } }
+let store = loadStore();
+function saveStore(){ try { localStorage.setItem(LS_KEY, JSON.stringify(store)); } catch(e){} }
+function pinHash(pin){ let h = 0; const s = "ladu::" + pin; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return String(h); }
+function nameKey(name){ return name.trim().toLowerCase(); }
+function setIdentity(o){ identity = o; updateChip(); }
+function updateChip(){
+  const chip = $("profileChip"); if (!chip) return;
+  if (!identity){ chip.textContent = "👤 Sign in"; return; }
+  if (identity.mode === "account"){
+    const a = store.accounts[identity.key];
+    chip.textContent = "👤 " + identity.name + (a ? " · " + a.wins + "W–" + a.losses + "L" : "");
+  } else {
+    chip.textContent = "👤 " + identity.name + " · guest";
+  }
+}
+function recordOnlineResult(){
+  if (!identity || mySeat < 0 || !lastSnap) return;
+  const humanWon = lastSnap.winner === (mySeat % 2);
+  const me = mySeat, pt = PARTNER[me];
+  const rivals = [0,1,2,3].filter(p => p % 2 !== me % 2);
+  if (identity.mode === "account"){
+    const a = store.accounts[identity.key]; if (!a) return;
+    if (humanWon){ a.wins++; a.streak = a.streak > 0 ? a.streak + 1 : 1; }
+    else { a.losses++; a.streak = a.streak < 0 ? a.streak - 1 : -1; }
+    a.history.unshift({ d: new Date().toISOString().slice(0, 10), you: CLUBNAMES[me], partner: CLUBNAMES[pt], rivals: CLUBNAMES[rivals[0]] + " & " + CLUBNAMES[rivals[1]], r: humanWon ? "W" : "L" });
+    a.history = a.history.slice(0, 20);
+    saveStore();
+  } else {
+    if (humanWon) identity.sWins++; else identity.sLosses++;
+  }
+  updateChip();
+}
+/* ---------- identity screen ---------- */
+let loginKey = null;
+function renderAcctList(){
+  const el = $("acctList"); if (!el) return;
+  const keys = Object.keys(store.accounts).sort((x, y) => store.accounts[y].wins - store.accounts[x].wins);
+  if (!keys.length){ el.innerHTML = '<p style="color:var(--dim);font-size:12.5px;margin:8px 0 0">No accounts on this device yet — create one below.</p>'; return; }
+  el.innerHTML = '<h3 style="margin-bottom:2px">Your accounts</h3>';
+  keys.forEach(k=>{
+    const a = store.accounts[k];
+    const row = document.createElement("div");
+    row.className = "acctRow";
+    row.innerHTML = "<span><b>" + a.name + '</b> <span class="rec">' + a.wins + "W – " + a.losses + 'L</span></span><span class="play">Play ▸</span>';
+    row.onclick = ()=>{
+      loginKey = k;
+      $("loginName").textContent = a.name;
+      $("pinInput").value = ""; $("loginMsg").textContent = "";
+      $("loginBox").style.display = "";
+    };
+    el.appendChild(row);
+  });
+}
+function openIdentity(){
+  renderAcctList();
+  $("loginBox").style.display = "none";
+  $("idBack").style.display = identity ? "" : "none";
+  $("idModal").classList.add("show");
+}
+function enterOnline(){
+  $("idModal").classList.remove("show");
+  updateChip();
+  // restore an in-progress room session if we have one
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem("ladu_online_session") || "null"); } catch(e){}
+  if (saved && saved.code && saved.token){ connectRoom(saved.code, saved.token, saved.seat, saved.isHost); return; }
+  showMode();
+}
+/* ---------- profile view ---------- */
+let deleteArmed = false;
+function renderProfile(){
+  if (!identity) return;
+  $("profTitle").textContent = "👤 " + identity.name + (identity.mode === "guest" ? " (guest)" : "");
+  const hist = $("profHistory");
+  if (identity.mode === "account"){
+    const a = store.accounts[identity.key];
+    const games = a.wins + a.losses;
+    const streakTxt = a.streak > 0 ? " · streak W" + a.streak : a.streak < 0 ? " · streak L" + (-a.streak) : "";
+    $("profRecord").textContent = games + " games · " + a.wins + "W – " + a.losses + "L" + (games ? " · " + Math.round(100 * a.wins / games) + "% wins" : "") + streakTxt;
+    hist.innerHTML = a.history.length
+      ? a.history.map(h => '<div class="histRow"><span>' + h.d + " · " + h.you + " + " + h.partner + '<br><span style="color:var(--dim)">vs ' + h.rivals + '</span></span><span class="' + (h.r === "W" ? "rW" : "rL") + '">' + h.r + "</span></div>").join("")
+      : '<p style="color:var(--dim);font-size:12.5px">No matches yet — your history lands here after each game.</p>';
+    $("deleteBtn").style.display = "";
+  } else {
+    $("profRecord").textContent = "This session: " + identity.sWins + "W – " + identity.sLosses + "L · guest games aren't saved";
+    hist.innerHTML = "";
+    $("deleteBtn").style.display = "none";
+  }
+  deleteArmed = false;
+  $("deleteBtn").textContent = "Delete my account";
+}
+
+/* ---------- board & rendering (same as solo) ---------- */
+const CELL = 100/15;
+let S = newGame();
+let busy = false, soundOn = true, audioCtx = null;
+const $ = id => document.getElementById(id);
+const boardEl = $("board"), logEl = $("log"), bannerTxt = $("bannerTxt"), bannerDot = $("bannerDot"), rollBtn = $("rollBtn"), actionsEl = $("actions");
+function beep(freq, dur, type, vol){
+  if (!soundOn) return;
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type || "sine"; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol || 0.05, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + (dur || 0.08));
+    o.connect(g).connect(audioCtx.destination);
+    o.start(); o.stop(audioCtx.currentTime + (dur || 0.08));
+  } catch(e){}
+}
+const sfx = {
+  roll(){ beep(300, .06, "square", .03); setTimeout(()=>beep(380, .06, "square", .03), 60); },
+  step(){ beep(520, .04, "sine", .025); },
+  kill(){ beep(140, .22, "sawtooth", .06); },
+  enter(){ beep(660, .09, "sine", .045); },
+  home(){ beep(880, .12, "sine", .05); setTimeout(()=>beep(1174, .14, "sine", .045), 90); },
+  win(){ [523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f, .16, "sine", .05), i*120)); }
+};
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+function logMsg(html){
+  const d = document.createElement("div");
+  d.innerHTML = html;
+  logEl.prepend(d);
+  while (logEl.children.length > 60) logEl.lastChild.remove();
+}
+function who(p){ return '<b style="color:'+COLORS[p]+'">'+NAMES[p]+"</b>"; }
+function segNumber(idx){
+  for (let p = 0; p < 4; p++){
+    const m = mouthIdx(p);
+    const fwd = (idx - m + 52) % 52;
+    if (fwd <= 12) return fwd === 0 ? "" : String(13 - fwd);
+  }
+  return "";
+}
+function buildBoard(){
+  boardEl.querySelectorAll(".cell,.yard,.centerHome").forEach(e=>e.remove());
+  const yardPos = [[0,0],[0,9],[9,9],[9,0]];
+  for (let p = 0; p < 4; p++){
+    const club = CLUBS[seatClub[p]];
+    const y = document.createElement("div");
+    y.className = "yard";
+    y.id = "yard-" + p;
+    y.style.cssText = "left:"+(yardPos[p][1]*CELL)+"%;top:"+(yardPos[p][0]*CELL)+"%;width:"+(6*CELL)+"%;height:"+(6*CELL)+"%;background:radial-gradient(circle at 50% 32%, "+COLORS[p]+"59, transparent 75%),"+YARDCOLORS[p]+";";
+    y.innerHTML = '<div class="inner" style="box-shadow:inset 0 0 0 3px '+club.trim+'">' +
+      '<div class="crestTxt" style="color:'+club.trim+'">'+club.initials+'</div>' +
+      [[13,13],[53,13],[13,53],[53,53]].map(pt=>'<div class="slot" style="left:'+pt[0]+'%;top:'+pt[1]+'%;border:2px solid '+COLORS[p]+'"></div>').join("") +
+      '<div class="yardName" style="color:'+club.trim+'">'+club.name+'</div>' +
+      "</div>";
+    boardEl.appendChild(y);
+  }
+  for (let idx = 0; idx < 52; idx++){
+    const rc = TRACK[idx];
+    let cls = "";
+    const owner = STARTS.indexOf(idx);
+    if (owner >= 0) cls += " entry safeIco";
+    if (MOUTHS.indexOf(idx) >= 0) cls += " mouth";
+    if ((rc[0] + rc[1]) % 2 === 0) cls += " alt";
+    const c = document.createElement("div");
+    c.className = "cell" + cls;
+    c.style.cssText = "left:"+(rc[1]*CELL)+"%;top:"+(rc[0]*CELL)+"%;width:"+CELL+"%;height:"+CELL+"%;" + (owner >= 0 ? "background:"+COLORS[owner]+"55;" : "");
+    const n = segNumber(idx);
+    c.innerHTML = n ? '<span class="num">'+n+"</span>" : "";
+    boardEl.appendChild(c);
+  }
+  const ROMAN = ["V", "IV", "III", "II", "I"];
+  for (let p = 0; p < 4; p++){
+    COLUMNS[p].forEach((rc, k)=>{
+      const c = document.createElement("div");
+      c.className = "cell";
+      c.style.cssText = "left:"+(rc[1]*CELL)+"%;top:"+(rc[0]*CELL)+"%;width:"+CELL+"%;height:"+CELL+"%;background:"+YARDCOLORS[p]+";";
+      c.innerHTML = '<span class="num" style="color:#fff;font-family:Georgia,serif">'+ROMAN[k]+"</span>";
+      boardEl.appendChild(c);
+    });
+  }
+  const ctr = document.createElement("div");
+  ctr.className = "centerHome";
+  ctr.style.cssText = "left:"+(6*CELL)+"%;top:"+(6*CELL)+"%;width:"+(3*CELL)+"%;height:"+(3*CELL)+"%;";
+  ctr.innerHTML = '<div class="star">★</div><div class="t">LADU</div><div class="s" id="centerScore"></div>';
+  boardEl.appendChild(ctr);
+}
+const MOUTHS = [0,1,2,3].map(p => mouthIdx(p));
+function yardSlotCenter(p, i){
+  const tl = [[0,0],[0,9],[9,9],[9,0]][p];
+  const offs = [[1.95,1.95],[3.95,1.95],[1.95,3.95],[3.95,3.95]];
+  return [ (tl[0]+offs[i][1])*CELL, (tl[1]+offs[i][0])*CELL ];
+}
+function renderPieces(overrides){
+  boardEl.querySelectorAll(".piece").forEach(e=>e.remove());
+  const groups = {};
+  for (let p = 0; p < 4; p++){
+    S.players[p].pieces.forEach((q, i)=>{
+      let qq = q;
+      if (overrides && overrides[p+":"+i] !== undefined) qq = overrides[p+":"+i];
+      const key = cellKey(p, qq);
+      (groups[key] = groups[key] || []).push({ p, i, q: qq });
+    });
+  }
+  Object.keys(groups).forEach(key=>{
+    const list = groups[key];
+    list.forEach((e, j)=>{
+      let cx, cy;
+      if (e.q < 0){ const c = yardSlotCenter(e.p, e.i); cx = c[1]; cy = c[0]; }
+      else { const rc = cellCoord(e.p, e.q); cx = (rc[1]+0.5)*CELL; cy = (rc[0]+0.5)*CELL; }
+      if (list.length > 1){ cx += (j - (list.length-1)/2) * 1.7; cy += ((j % 2) - 0.5) * 1.7; }
+      const size = list.length > 1 ? 4.6 : 5.6;
+      const d = document.createElement("div");
+      d.className = "piece";
+      d.id = "piece-" + e.p + "-" + e.i;
+      d.style.cssText = "left:calc("+cx+"% - "+(size/2)+"%);top:calc("+cy+"% - "+(size/2)+"%);width:"+size+"%;height:"+size+"%;background:"+COLORS[e.p]+";color:"+CLUBS[seatClub[e.p]].txt+";font-size:"+(list.length>1?8:11)+"px;";
+      d.textContent = e.i + 1;
+      boardEl.appendChild(d);
+    });
+  });
+}
+function homeCount(p){ return S.players[p].pieces.filter(q=>q===HOME).length; }
+function renderScores(){
+  const el = $("scores"); el.innerHTML = "";
+  for (let p = 0; p < 4; p++){
+    const d = document.createElement("div");
+    d.className = "score" + (S.turn === p ? " active" : "");
+    const tag = S.players[p].finished ? (S.players[p].satOut ? " · 2nd hand" : " · done") : "";
+    const role = p === mySeat ? "Your club" : p === PARTNER[mySeat] && mySeat >= 0 ? "Partner club" : "Seat " + (p+1);
+    d.innerHTML = '<span class="pip" style="background:'+COLORS[p]+'"></span><span><b>'+NAMES[p]+'</b> <span class="team">'+role+tag+'</span></span><span class="home">🏠 '+homeCount(p)+"/4</span>";
+    el.appendChild(d);
+  }
+  const cs = $("centerScore");
+  if (cs) cs.textContent = CLUBS[seatClub[0]].short + "+" + CLUBS[seatClub[2]].short + " " + (homeCount(0)+homeCount(2)) + " — " + (homeCount(1)+homeCount(3)) + " " + CLUBS[seatClub[1]].short + "+" + CLUBS[seatClub[3]].short;
+}
+function paintTurn(){
+  for (let p = 0; p < 4; p++){
+    const y = $("yard-" + p);
+    if (y) y.classList.toggle("turnNow", S.turn === p && S.winner === null);
+  }
+  boardEl.style.boxShadow = S.winner === null ? "0 0 0 4px " + COLORS[S.turn] + ", 0 8px 30px rgba(0,0,0,.45)" : "";
+  bannerDot.style.background = COLORS[S.turn];
+}
+function renderAll(overrides){ renderPieces(overrides); renderScores(); paintTurn(); }
+function setBanner(html){ bannerTxt.innerHTML = html; }
+const PIPS = {1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+function drawDie(el, v){
+  el.innerHTML = "";
+  PIPS[v].forEach(pos=>{
+    const p = document.createElement("div"); p.className = "p";
+    const r = Math.floor(pos/3), c = pos%3;
+    p.style.left = (14 + c*30) + "%"; p.style.top = (14 + r*30) + "%";
+    el.appendChild(p);
+  });
+}
+
+/* ================= NET LAYER ================= */
+let roomCode = null, myToken = null, mySeat = -1, isHost = false;
+let es = null, lastSnap = null, lastClubKey = "", recordedGame = false, seededLogFor = null, prevEvKey = "";
+let viewSteps = [];
+
+async function api(path, obj){
+  const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(obj || {}) });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(data.error || "Request failed");
+  return data;
+}
+function saveSession(){
+  try {
+    if (roomCode && myToken) localStorage.setItem("ladu_online_session", JSON.stringify({ code: roomCode, token: myToken, seat: mySeat, isHost }));
+    else localStorage.removeItem("ladu_online_session");
+  } catch(e){}
+}
+function connectRoom(code, tk, seat, host){
+  disconnectRoom(false);
+  roomCode = code; myToken = tk; mySeat = seat; isHost = !!host;
+  saveSession();
+  es = new EventSource("/api/rooms/" + code + "/events?token=" + encodeURIComponent(tk));
+  es.addEventListener("state", ev => { try { applySnap(JSON.parse(ev.data)); } catch(e){} });
+  es.addEventListener("log", ev => { try { const d = JSON.parse(ev.data); logMsg(d.html); } catch(e){} });
+  es.onerror = () => { if (es && es.readyState === 2) setBanner("⚠️ Connection to the room was lost."); };
+  $("lobbyModal").classList.add("show");
+}
+function disconnectRoom(clearSaved = true){
+  if (es){ es.close(); es = null; }
+  roomCode = null; myToken = null; mySeat = -1; isHost = false; lastSnap = null;
+  if (clearSaved) saveSession();
+}
+function showMode(){
+  const m = $("modeModal");
+  const q = new URLSearchParams(location.search).get("room");
+  if (q) $("joinCode").value = q.toUpperCase();
+  $("modeMsg").textContent = "";
+  m.classList.add("show");
+}
+
+/* ---------- snapshot application ---------- */
+function applySeatInfo(snap){
+  seatClub = snap.seatClub;
+  COLORS     = seatClub.map(ci => CLUBS[ci].color);
+  YARDCOLORS = seatClub.map(ci => CLUBS[ci].deep);
+  CLUBNAMES  = seatClub.map(ci => CLUBS[ci].name);
+  NAMES      = seatClub.map((ci, p) => {
+    const s = snap.seats[p];
+    return CLUBS[ci].name + (s && s.kind === "human" && s.name ? " (" + s.name + ")" : "");
+  });
+  const key = seatClub.join(",");
+  if (key !== lastClubKey){ lastClubKey = key; buildBoard(); }
+  $("subTitle").textContent = "Room " + snap.code + " · " + CLUBNAMES[0] + " + " + CLUBNAMES[2] + " vs " + CLUBNAMES[1] + " + " + CLUBNAMES[3];
+}
+function applySnap(snap){
+  const prevPhase = lastSnap ? lastSnap.phase : null;
+  lastSnap = snap;
+  applySeatInfo(snap);
+  if (snap.S) S = snap.S;
+  // seed the game log once per room (SSE 'log' events stream the rest)
+  if (seededLogFor !== snap.code){
+    seededLogFor = snap.code;
+    logEl.innerHTML = "";
+    (snap.logTail || []).forEach(l => {
+      const d = document.createElement("div"); d.innerHTML = l; logEl.appendChild(d);
+    });
+    while (logEl.children.length > 60) logEl.firstChild.remove();
+  }
+  // sounds from the latest event hint
+  const evKey = JSON.stringify(snap.lastEv || {}) + "|" + snap.phase + "|" + snap.turn + "|" + (snap.dice || []).join(",");
+  if (prevEvKey && evKey !== prevEvKey && snap.lastEv){
+    if (snap.lastEv.kills) sfx.kill();
+    else if (snap.lastEv.homed) sfx.home();
+    else if (snap.lastEv.entered) sfx.enter();
+    else if (snap.lastEv.roll) sfx.roll();
+  }
+  prevEvKey = evKey;
+  // dice display: grey out dice already spent
+  if (snap.dice){
+    drawDie($("die0"), snap.dice[0]); drawDie($("die1"), snap.dice[1]);
+    const rem = snap.remaining.slice();
+    [0, 1].forEach(i => {
+      const idx = rem.indexOf(snap.dice[i]);
+      if (idx >= 0){ rem.splice(idx, 1); $("die" + i).classList.remove("spent"); }
+      else $("die" + i).classList.add("spent");
+    });
+  }
+  renderAll();
+  // overlays + controls by phase
+  if (snap.phase === "lobby"){
+    recordedGame = false;
+    $("winModal").classList.remove("show");
+    renderLobby(snap);
+    if (!$("idModal").classList.contains("show")) $("lobbyModal").classList.add("show");
+    setBanner("In the lobby — waiting for the game to start.");
+    rollBtn.disabled = true; rollBtn.textContent = "In the lobby…"; rollBtn.classList.remove("ready");
+    clearStepUI();
+  } else if (snap.phase === "over"){
+    $("lobbyModal").classList.remove("show");
+    clearStepUI();
+    rollBtn.disabled = true; rollBtn.textContent = "Game over"; rollBtn.classList.remove("ready");
+    if (!recordedGame){
+      recordedGame = true;
+      if (mySeat >= 0) recordOnlineResult();
+      sfx.win();
+      const teamA = snap.winner === 0;
+      const mine = mySeat >= 0 && snap.winner === (mySeat % 2);
+      $("winTxt").textContent = mySeat < 0 ? (teamA ? "🏆 " + CLUBNAMES[0] + " + " + CLUBNAMES[2] + " win!" : "🏆 " + CLUBNAMES[1] + " + " + CLUBNAMES[3] + " win!") : (mine ? "🏆 Your team wins!" : "🏆 The rivals win");
+      $("winSub").textContent = teamA ? CLUBNAMES[0] + " and " + CLUBNAMES[2] + " got all 8 pieces home." : CLUBNAMES[1] + " and " + CLUBNAMES[3] + " got all 8 pieces home.";
+      $("winAgain").textContent = isHost ? "Play again (same room)" : "Waiting for the host…";
+      $("winAgain").disabled = !isHost;
+      $("winModal").classList.add("show");
+    }
+  } else {
+    $("lobbyModal").classList.remove("show");
+    $("winModal").classList.remove("show");
+    const owner = snap.controlSeat;
+    const mineToControl = mySeat >= 0 && owner === mySeat;
+    if (snap.phase === "roll"){
+      clearStepUI();
+      drawDie($("die0"), 6); drawDie($("die1"), 6);
+      $("die0").classList.remove("spent"); $("die1").classList.remove("spent");
+      if (mineToControl){
+        setBanner(owner !== snap.turn ? "YOUR TURN — you're moving " + CLUBNAMES[owner] + "'s pieces (second hand). Roll!" : "YOUR TURN — roll the dice.");
+        rollBtn.disabled = false; rollBtn.textContent = "🎲 Roll dice"; rollBtn.classList.add("ready");
+      } else {
+        setBanner(NAMES[snap.turn].toUpperCase() + "'S TURN" + (owner !== snap.turn ? " — playing " + CLUBNAMES[owner] + "'s hand…" : "…"));
+        rollBtn.disabled = true; rollBtn.textContent = "Waiting…"; rollBtn.classList.remove("ready");
+      }
+    } else if (snap.phase === "steps"){
+      rollBtn.disabled = true; rollBtn.textContent = "Moving…"; rollBtn.classList.remove("ready");
+      if (mineToControl && snap.steps && snap.steps.length){
+        setBanner(snap.mustKill ? "A DIRECT KILL is on — you must take it. Tap a glowing piece." : "Your move — tap a glowing piece.");
+        renderStepChoices(snap.steps);
+      } else {
+        clearStepUI();
+        setBanner(NAMES[owner] + " is moving…");
+      }
+    }
+  }
+  if (snap.phase !== "lobby" && $("lobbyModal").classList.contains("show") && lobbyPinned) renderLobby(snap);
+}
+
+/* ---------- step choices (my turn, die by die) ---------- */
+function clearStepUI(){
+  boardEl.querySelectorAll(".piece").forEach(e => { e.classList.remove("glow"); e.onclick = null; });
+  actionsEl.classList.remove("show"); actionsEl.innerHTML = "";
+  viewSteps = [];
+}
+function stepLabel(a){
+  if (a.type === "enter") return "Bring in (6)";
+  if (a.type === "enterDouble") return "Bring in (whole roll)";
+  if (a.type === "back") return "⬅ Kill backwards (1)";
+  return "Move " + a.die + (a.to === HOME ? " — HOME!" : ((a.kills || []).length ? " — KILL!" : ""));
+}
+function renderStepChoices(steps){
+  clearStepUI();
+  viewSteps = steps;
+  const owner = lastSnap.controlSeat;
+  const byPiece = {};
+  steps.forEach(a => { (byPiece[a.piece] = byPiece[a.piece] || []).push(a); });
+  Object.keys(byPiece).forEach(pi => {
+    const el = $("piece-" + owner + "-" + pi);
+    if (el){ el.classList.add("glow"); el.onclick = () => pickPiece(+pi, byPiece[pi]); }
+  });
+}
+function pickPiece(pi, options){
+  if (options.length === 1){ sendStep(options[0]); return; }
+  actionsEl.innerHTML = '<span class="lbl">Piece ' + (pi + 1) + " — choose:</span>";
+  options.forEach(a => {
+    const b = document.createElement("button");
+    b.textContent = stepLabel(a);
+    b.onclick = () => sendStep(a);
+    actionsEl.appendChild(b);
+  });
+  actionsEl.classList.add("show");
+}
+async function sendStep(a){
+  clearStepUI();
+  try { await api("/api/rooms/" + roomCode + "/step", { token: myToken, step: { piece: a.piece, die: a.die, type: a.type, to: a.to } }); }
+  catch(e){ /* server will resync us with a fresh snapshot */ }
+}
+
+/* ---------- lobby ---------- */
+let lobbyPinned = false; // true when the lobby is opened mid-game as an overlay
+function renderLobby(snap){
+  $("roomCodeBig").textContent = snap.code;
+  $("roomLink").textContent = location.origin + location.pathname + "?room=" + snap.code;
+  const grid = $("seatGrid"); grid.innerHTML = "";
+  snap.seats.forEach((s, p) => {
+    const clubIdx = snap.seatClub[p];
+    const card = document.createElement("div");
+    card.className = "seatCard";
+    let occ;
+    if (s.kind === "human") occ = "<b>" + (s.name || "Player") + "</b>" + (p === mySeat ? " (you)" : "") + (s.connected ? "" : ' <span class="dim">· offline</span>');
+    else if (s.kind === "ai" && snap.phase !== "lobby") occ = "<b>Computer</b>";
+    else occ = '<span class="dim">Open — computer plays if empty</span>';
+    card.innerHTML =
+      '<div class="seatBand" style="background:' + CLUBS[clubIdx].color + '"></div>' +
+      '<div class="seatHead">Seat ' + (p + 1) + " · Team " + (p % 2 === 0 ? "A" : "B") + (p === snap.hostSeat ? " · 👑 host" : "") + "</div>" +
+      '<div class="seatClub">' + CLUBS[clubIdx].name + "</div>" +
+      '<div class="seatOcc">' + occ + "</div>";
+    if (snap.phase === "lobby"){
+      if (s.kind === "open" && mySeat < 0){
+        const b = document.createElement("button");
+        b.className = "miniBtn"; b.textContent = "Sit here";
+        b.onclick = async () => { try { await api("/api/rooms/" + roomCode + "/seat", { token: myToken, seat: p }); mySeat = p; saveSession(); } catch(e){ alert(e.message); } };
+        card.appendChild(b);
+      }
+      if (p === mySeat){
+        const row = document.createElement("div"); row.className = "clubRow";
+        CLUBS.forEach((c, ci) => {
+          const taken = snap.seats.some((s2, i2) => i2 !== p && s2.club === ci);
+          const chip = document.createElement("button");
+          chip.className = "clubChip" + (snap.seats[p].club === ci ? " sel" : "");
+          chip.style.background = c.color; chip.style.color = c.txt;
+          chip.textContent = c.short;
+          chip.disabled = taken;
+          chip.title = c.name;
+          chip.onclick = async () => { try { await api("/api/rooms/" + roomCode + "/club", { token: myToken, club: ci }); } catch(e){ alert(e.message); } };
+          row.appendChild(chip);
+        });
+        card.appendChild(row);
+        const stand = document.createElement("button");
+        stand.className = "miniBtn ghostBtn"; stand.textContent = "Stand up";
+        stand.onclick = async () => { try { await api("/api/rooms/" + roomCode + "/seat", { token: myToken, seat: -1 }); mySeat = -1; saveSession(); } catch(e){ alert(e.message); } };
+        card.appendChild(stand);
+      }
+    } else if (isHost && s.kind === "human" && p !== mySeat && snap.phase !== "over"){
+      const b = document.createElement("button");
+      b.className = "miniBtn ghostBtn"; b.textContent = "🤖 Computer takes over";
+      b.onclick = async () => { try { await api("/api/rooms/" + roomCode + "/takeover", { token: myToken, seat: p }); } catch(e){ alert(e.message); } };
+      card.appendChild(b);
+    }
+    grid.appendChild(card);
+  });
+  const spec = snap.members.filter(n => !snap.seats.some(s => s.kind === "human" && s.name === n));
+  $("specLine").textContent = spec.length ? "Watching: " + spec.join(", ") : "";
+  const startBtn = $("startBtn");
+  if (snap.phase === "lobby"){
+    startBtn.style.display = isHost ? "" : "none";
+    $("lobbyWait").textContent = isHost ? "Empty seats are played by the computer. Start whenever you're ready." : "Waiting for the host to start the game…";
+  } else {
+    startBtn.style.display = "none";
+    $("lobbyWait").textContent = "Game in progress.";
+  }
+  $("closeLobbyBtn").style.display = snap.phase === "lobby" ? "none" : "";
+}
+
+/* ---------- wiring ---------- */
+$("rollBtn").onclick = async () => {
+  rollBtn.disabled = true;
+  try { await api("/api/rooms/" + roomCode + "/roll", { token: myToken }); }
+  catch(e){ /* snapshot will resync */ }
+};
+$("newBtn").onclick = () => { if (lastSnap){ lobbyPinned = true; renderLobby(lastSnap); $("lobbyModal").classList.add("show"); } };
+$("closeLobbyBtn").onclick = () => { lobbyPinned = false; $("lobbyModal").classList.remove("show"); };
+$("leaveBtn").onclick = async () => {
+  const code = roomCode, tk = myToken;
+  lobbyPinned = false;
+  $("lobbyModal").classList.remove("show");
+  disconnectRoom(true);
+  if (code) api("/api/rooms/" + code + "/leave", { token: tk }).catch(() => {});
+  showMode();
+};
+$("copyLinkBtn").onclick = () => {
+  const link = location.origin + location.pathname + "?room=" + roomCode;
+  if (navigator.clipboard) navigator.clipboard.writeText(link).then(() => { $("copyLinkBtn").textContent = "Copied!"; setTimeout(() => $("copyLinkBtn").textContent = "Copy invite link", 1600); });
+};
+$("startBtn").onclick = async () => { try { await api("/api/rooms/" + roomCode + "/start", { token: myToken }); } catch(e){ alert(e.message); } };
+$("winAgain").onclick = async () => { if (!isHost) return; $("winModal").classList.remove("show"); try { await api("/api/rooms/" + roomCode + "/start", { token: myToken }); } catch(e){ alert(e.message); } };
+$("createBtn2").onclick = async () => {
+  try {
+    const r = await api("/api/rooms", { name: identity.name });
+    $("modeModal").classList.remove("show");
+    connectRoom(r.code, r.token, 0, true);
+  } catch(e){ $("modeMsg").textContent = e.message; }
+};
+$("joinBtn").onclick = async () => {
+  const code = $("joinCode").value.trim().toUpperCase();
+  if (code.length !== 4){ $("modeMsg").textContent = "Enter the 4-letter room code."; return; }
+  try {
+    const r = await api("/api/rooms/" + code + "/join", { name: identity.name });
+    $("modeModal").classList.remove("show");
+    connectRoom(code, r.token, -1, false);
+  } catch(e){ $("modeMsg").textContent = e.message; }
+};
+$("profileChip").onclick = () => { if (!identity) openIdentity(); else { renderProfile(); $("profileModal").classList.add("show"); } };
+$("loginBtn").onclick = () => {
+  const a = store.accounts[loginKey]; if (!a) return;
+  if (pinHash($("pinInput").value.trim()) === a.pinHash){ setIdentity({ mode: "account", name: a.name, key: loginKey }); enterOnline(); }
+  else $("loginMsg").textContent = "Wrong PIN — try again.";
+};
+$("createBtn").onclick = () => {
+  const name = $("newName").value.trim(), pin = $("newPin").value.trim(), msg = $("createMsg");
+  if (name.length < 2){ msg.textContent = "Name needs at least 2 characters."; return; }
+  if (!/^\d{4}$/.test(pin)){ msg.textContent = "PIN must be exactly 4 digits."; return; }
+  const key = nameKey(name);
+  if (store.accounts[key]){ msg.textContent = "That name is taken — log in above or pick another name."; return; }
+  store.accounts[key] = { name, pinHash: pinHash(pin), wins: 0, losses: 0, streak: 0, history: [] };
+  saveStore();
+  setIdentity({ mode: "account", name, key });
+  enterOnline();
+};
+$("guestBtn").onclick = () => {
+  const name = $("guestName").value.trim() || "Guest";
+  setIdentity({ mode: "guest", name, sWins: 0, sLosses: 0 });
+  enterOnline();
+};
+$("idBack").onclick = () => $("idModal").classList.remove("show");
+$("profClose").onclick = () => $("profileModal").classList.remove("show");
+$("switchBtn").onclick = async () => {
+  $("profileModal").classList.remove("show");
+  const code = roomCode, tk = myToken;
+  disconnectRoom(true);
+  if (code) api("/api/rooms/" + code + "/leave", { token: tk }).catch(() => {});
+  openIdentity();
+};
+$("deleteBtn").onclick = () => {
+  if (!identity || identity.mode !== "account") return;
+  if (!deleteArmed){ deleteArmed = true; $("deleteBtn").textContent = "Tap again to confirm delete"; return; }
+  delete store.accounts[identity.key]; saveStore();
+  identity = null; updateChip();
+  $("profileModal").classList.remove("show"); openIdentity();
+};
+$("rulesBtn").onclick = () => $("rulesModal").classList.add("show");
+$("rulesClose").onclick = () => $("rulesModal").classList.remove("show");
+$("soundBtn").onclick = () => { soundOn = !soundOn; $("soundBtn").textContent = soundOn ? "🔊" : "🔇"; };
+
+/* ---------- init ---------- */
+COLORS = CLUBS.map(c => c.color); YARDCOLORS = CLUBS.map(c => c.deep);
+CLUBNAMES = CLUBS.map(c => c.name); NAMES = CLUBNAMES.slice();
+buildBoard(); renderAll();
+renderAcctList(); updateChip();
+logMsg("Welcome to Ladu Online. Sign in or play as a guest, then create a room and send the link to your family.");
+
+</script>
+</body>
+</html>

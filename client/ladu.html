@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ladu — Asad's Rules</title>
+<style>
+  :root{
+    --red:#e53935; --green:#43a047; --amber:#f9a825; --blue:#1e88e5;
+    --ink:#16110c; --panel:#221a12; --panel2:#2b2115; --line:#453723; --txt:#f3ead9; --dim:#b8a888;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;color:var(--txt);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;}
+  body{background:radial-gradient(1200px 620px at 50% -10%, #2e2114, var(--ink) 70%);min-height:100vh;}
+  .wrap{max-width:520px;margin:0 auto;padding:10px 10px 26px;}
+  header{display:flex;align-items:baseline;justify-content:space-between;padding:4px 2px 8px;}
+  h1{font-size:30px;margin:0;letter-spacing:3px;font-weight:900;}
+  h1 .dot{color:var(--amber);}
+  .sub{color:var(--dim);font-size:12px;margin-top:2px;}
+  .topbtns{display:flex;gap:6px;}
+  button{font-family:inherit;border:0;border-radius:10px;cursor:pointer;font-weight:700;}
+  .ghost{background:var(--panel2);color:var(--txt);border:1px solid var(--line);padding:8px 10px;font-size:13px;}
+  .scores{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;}
+  .score{display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 8px;font-size:12px;}
+  .score .pip{width:14px;height:14px;border-radius:50%;flex:0 0 auto;border:2px solid rgba(255,255,255,.35);}
+  .score b{font-size:12px;}
+  .score .home{margin-left:auto;color:var(--dim);font-size:12px;white-space:nowrap;}
+  .score.turn{outline:2px solid #fff3;box-shadow:0 0 0 2px #ffffff22;}
+  .score .team{color:var(--dim);font-size:10px;text-transform:uppercase;letter-spacing:.5px;}
+  .banner{border-radius:12px;padding:11px 14px;font-size:16px;font-weight:800;min-height:46px;display:flex;align-items:center;gap:8px;margin-bottom:8px;transition:background .3s;background:var(--panel2);border:1px solid var(--line);}
+  .banner .who{width:18px;height:18px;border-radius:50%;flex:0 0 auto;border:2px solid rgba(255,255,255,.65);background:#fff3;}
+  .yard.activeYard{animation:yardPulse .8s ease-in-out infinite alternate;z-index:3;}
+  @keyframes yardPulse{from{box-shadow:0 0 0 2px #ffffff88,0 0 4px 1px #ffffff55;}to{box-shadow:0 0 0 4px #fff,0 0 16px 5px #ffffffaa;}}
+  #rollBtn.ready{animation:btnPulse .7s ease-in-out infinite alternate;}
+  @keyframes btnPulse{from{transform:scale(1);}to{transform:scale(1.035);box-shadow:0 4px 0 #b97f0e,0 0 14px 3px #f9a82588;}}
+  /* BOARD */
+  .boardWrap{position:relative;width:100%;aspect-ratio:1/1;border-radius:16px;overflow:hidden;border:6px solid #33241a;background:linear-gradient(135deg,#7a5230,#5b3a20 55%,#6e4a2a);box-shadow:0 10px 34px rgba(0,0,0,.55);}
+  .cell{position:absolute;border:1px solid #c9b586;background:#eee1c2;display:flex;align-items:center;justify-content:center;}
+  .cell.alt{background:#e4d2a9;}
+  .cell .num{font-size:clamp(7px,2vw,11px);color:#8a6d3b;font-weight:800;pointer-events:none;}
+  .cell.entry{background:#fff;}
+  .cell.mouth{background:#ecd07c;box-shadow:inset 0 0 0 2px #8a6d3b88;}
+  .cell.mouth .num{color:#6b4e12;font-size:clamp(8px,2.2vw,12px);}
+  .cell.safeIco::after{content:"★";position:absolute;top:0px;right:1px;font-size:8px;color:#d4a017;}
+  .yard{position:absolute;border-radius:10px;display:flex;align-items:center;justify-content:center;}
+  .yard::before{content:"";position:absolute;inset:0;border-radius:10px;background:repeating-linear-gradient(45deg,rgba(255,255,255,.08) 0 6px,transparent 6px 12px),repeating-linear-gradient(-45deg,rgba(0,0,0,.10) 0 6px,transparent 6px 12px);pointer-events:none;}
+  .yard .inner{width:72%;height:72%;background:linear-gradient(160deg, rgba(0,0,0,.16), rgba(0,0,0,.46));border-radius:10px;position:relative;z-index:1;}
+  .crestTxt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:Georgia,'Times New Roman',serif;font-weight:900;font-size:clamp(19px,5.6vw,32px);letter-spacing:1px;opacity:.5;pointer-events:none;}
+  .yardName{position:absolute;left:0;right:0;bottom:1px;text-align:center;font-size:clamp(7px,1.9vw,10px);font-weight:800;letter-spacing:1.5px;text-transform:uppercase;pointer-events:none;}
+  .slot{position:absolute;width:34%;height:34%;border-radius:50%;background:#0000000d;}
+  .centerHome{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 42%, #3f9142, #2e7d32 58%, #1b5e20);color:#fff;gap:0;text-align:center;box-shadow:inset 0 0 0 3px #f3d27a;}
+  .centerHome::after{content:"";position:absolute;inset:15%;border:2px solid rgba(255,255,255,.7);border-radius:50%;pointer-events:none;}
+  .centerHome .star{font-size:clamp(15px,4vw,24px);line-height:1;color:#f3d27a;text-shadow:0 1px 3px rgba(0,0,0,.4);}
+  .centerHome .t{font-size:clamp(9px,2.6vw,13px);font-weight:900;letter-spacing:2px;}
+  .centerHome .s{font-size:clamp(8px,2.2vw,11px);color:#eaf4ff;}
+  .piece{position:absolute;border-radius:50%;border:2px solid rgba(0,0,0,.4);box-shadow:0 1px 3px rgba(0,0,0,.5), inset 0 0 0 2px rgba(255,255,255,.5), inset 0 -3px 5px rgba(0,0,0,.25), inset 0 2px 3px rgba(255,255,255,.45);z-index:5;transition:left .13s linear, top .13s linear;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;text-shadow:0 1px 2px rgba(0,0,0,.6);}
+  .piece.mini{border-width:1px;}
+  .piece.glow{animation:glow .7s ease-in-out infinite alternate;cursor:pointer;z-index:8;}
+  @keyframes glow{from{box-shadow:0 0 0 2px #fff,0 0 6px 2px #ffd54a;}to{box-shadow:0 0 0 3px #ffd54a,0 0 14px 5px #ffd54a;}}
+  .piece.dead{animation:die .45s ease-in;}
+  @keyframes die{30%{transform:scale(1.5) rotate(25deg);}100%{transform:scale(.2) rotate(-30deg);opacity:.2;}}
+  .piece.done{opacity:.85;}
+  /* CONTROLS */
+  .controls{display:flex;align-items:center;gap:10px;margin-top:10px;}
+  .dice{display:flex;gap:8px;}
+  .die{width:52px;height:52px;background:#f6ecd7;border-radius:12px;position:relative;box-shadow:0 3px 8px rgba(0,0,0,.4);}
+  .die .p{position:absolute;width:11px;height:11px;border-radius:50%;background:#2a1f14;}
+  .die.rolling{animation:shake .45s ease-in-out;}
+  @keyframes shake{0%{transform:rotate(0)}25%{transform:rotate(-14deg) translateY(-4px)}50%{transform:rotate(11deg)}75%{transform:rotate(-7deg) translateY(2px)}100%{transform:rotate(0)}}
+  .die.spent{opacity:.28;}
+  #rollBtn{flex:1;background:var(--amber);color:#221a02;font-size:17px;padding:14px 10px;border-radius:12px;box-shadow:0 4px 0 #b97f0e;}
+  #rollBtn:disabled{background:#3a3f52;color:#7c8499;box-shadow:none;}
+  .actions{display:none;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .actions.show{display:flex;}
+  .actions button{background:#2b3fbd;color:#fff;padding:10px 12px;font-size:14px;border-radius:10px;}
+  .actions .lbl{width:100%;color:var(--dim);font-size:12px;}
+  .log{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin-top:10px;padding:8px 12px;font-size:13px;min-height:64px;}
+  .log div{padding:2px 0;color:#d7dbe8;}
+  .log div:first-child{color:#fff;font-weight:600;}
+  .modal{position:fixed;inset:0;background:rgba(5,6,10,.78);display:none;align-items:center;justify-content:center;padding:16px;z-index:50;}
+  .modal.show{display:flex;}
+  .sheet{background:var(--panel);border:1px solid var(--line);border-radius:16px;max-width:480px;width:100%;max-height:86vh;overflow:auto;padding:18px;}
+  .sheet h2{margin:0 0 8px;font-size:20px;}
+  .sheet li{margin:6px 0;font-size:14px;line-height:1.45;color:#d7dbe8;}
+  .sheet .close{width:100%;margin-top:12px;background:var(--amber);color:#221a02;padding:12px;font-size:15px;}
+  .win{font-size:22px;text-align:center;}
+  .sheet input.idIn{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--txt);font-size:15px;margin:5px 0;}
+  .sheet h3{margin:16px 0 2px;font-size:14px;}
+  .idMsg{color:#ff9a8a;font-size:12px;min-height:15px;margin-top:4px;}
+  .acctRow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;margin:5px 0;background:var(--panel2);cursor:pointer;}
+  .acctRow .rec{color:var(--dim);font-size:12px;}
+  .acctRow .play{color:var(--amber);font-weight:800;font-size:13px;}
+  .chipBtn{align-self:flex-start;margin-top:7px;background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:999px;padding:5px 12px;font-size:12.5px;font-weight:700;cursor:pointer;}
+  .histRow{display:flex;justify-content:space-between;gap:8px;padding:7px 2px;border-bottom:1px solid var(--line);font-size:12.5px;}
+  .histRow .rW{color:#7dd87d;font-weight:900;}
+  .histRow .rL{color:#ff9a8a;font-weight:900;}
+  .clubGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+  .clubCard{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:12px;border-radius:12px;border:2px solid var(--line);background:var(--panel2);color:var(--txt);text-align:left;cursor:pointer;}
+  .clubCard:active{transform:scale(.98);}
+  .clubCard .band{width:100%;height:9px;border-radius:5px;margin-bottom:7px;}
+  .clubCard b{font-size:16px;}
+  .clubCard span{color:var(--dim);font-size:12px;}
+  .clubCard .motto{font-style:italic;font-size:11px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>LADU<span class="dot">.</span></h1>
+      <div class="sub" id="subTitle">Premier League edition · 2v2</div>
+      <button class="chipBtn" id="profileChip">👤 Sign in</button>
+    </div>
+    <div class="topbtns">
+      <button class="ghost" id="soundBtn">🔊</button>
+      <button class="ghost" id="rulesBtn">Rules</button>
+      <button class="ghost" id="newBtn">New game</button>
+    </div>
+  </header>
+
+  <div class="scores" id="scores"></div>
+  <div class="banner"><span class="who" id="bannerDot"></span><span id="bannerTxt">Your turn — roll the dice.</span></div>
+
+  <div class="boardWrap" id="board"></div>
+
+  <div class="controls">
+    <div class="dice">
+      <div class="die" id="die0"></div>
+      <div class="die" id="die1"></div>
+    </div>
+    <button id="rollBtn">🎲 Roll dice</button>
+  </div>
+  <div class="actions" id="actions"></div>
+  <div class="log" id="log"></div>
+</div>
+
+<div class="modal" id="rulesModal">
+  <div class="sheet">
+    <h2>Asad's rules</h2>
+    <ul>
+      <li><b>Two dice.</b> Split them between pieces however you like, but each die is spent whole.</li>
+      <li><b>Getting out:</b> a 6 on either die brings a piece in — double 6s bring two in. Any double can bring one in too, but then the whole roll is spent.</li>
+      <li><b>Extra rolls:</b> roll again when you roll a 6 and after every kill. But a 6 rolled right after a kill earns nothing. Doubles alone earn nothing.</li>
+      <li><b>Forced kill:</b> if a kill is sitting there with ONE die, you must take it — even your own partner. A kill that needs two moves is your choice, never forced. Multiple kills available? You pick which.</li>
+      <li><b>Backward kill:</b> roll a 1 and an enemy sits exactly one square behind you — you kill backwards. Not from an entry square.</li>
+      <li><b>Safe squares:</b> only the four entry squares (★). Safe for everyone standing on them.</li>
+      <li><b>Stacks are walls:</b> 2+ of your pieces on a square = locked. Nobody can kill it, land on it, or pass it — not even you. Land exactly on it or unlock it.</li>
+      <li><b>Door lock:</b> your stack alone on someone's entry square means they can't bring pieces in.</li>
+      <li><b>Home column:</b> the 12 square on top is shared and exposed; the 5 squares under it are private. From the 12, any dice combo totaling 6 takes the piece home. Overshoot can't be used on a piece.</li>
+      <li><b>Second hand:</b> get all 4 home and you sit one round out, then your turns move your partner's pieces.</li>
+      <li>First team with all 8 pieces home wins.</li>
+    </ul>
+    <button class="close" id="rulesClose">Close</button>
+  </div>
+</div>
+
+<div class="modal" id="winModal">
+  <div class="sheet win">
+    <h2 id="winTxt">🏆</h2>
+    <p id="winSub" style="color:var(--dim)"></p>
+    <button class="close" id="winAgain">Play again</button>
+  </div>
+</div>
+
+<div class="modal show" id="idModal">
+  <div class="sheet">
+    <h2>Who's playing?</h2>
+    <p style="color:var(--dim);font-size:13px;margin:4px 0 0">Create an account to keep your win/loss record, or play as a guest — guests aren't saved.</p>
+    <div id="acctList"></div>
+    <div id="loginBox" style="display:none">
+      <p style="margin:8px 0 0"><b id="loginName"></b> — enter your PIN:</p>
+      <input class="idIn" id="pinInput" type="password" inputmode="numeric" maxlength="4" placeholder="4-digit PIN">
+      <button class="close" id="loginBtn">Log in &amp; play</button>
+      <div class="idMsg" id="loginMsg"></div>
+    </div>
+    <h3>Create account</h3>
+    <input class="idIn" id="newName" maxlength="16" placeholder="Your name">
+    <input class="idIn" id="newPin" type="password" inputmode="numeric" maxlength="4" placeholder="Choose a 4-digit PIN">
+    <button class="close" id="createBtn" style="background:var(--panel2);color:var(--txt);border:1px solid var(--line)">Create account &amp; play</button>
+    <div class="idMsg" id="createMsg"></div>
+    <h3>Play as guest</h3>
+    <input class="idIn" id="guestName" maxlength="16" placeholder="Guest name (optional)">
+    <button class="close" id="guestBtn" style="background:var(--panel2);color:var(--txt);border:1px solid var(--line)">Play as guest</button>
+    <p style="color:var(--dim);font-size:11px;margin:10px 0 0">Accounts live on this device for now — online accounts arrive with multiplayer, and your records will carry over.</p>
+    <button class="close" id="idBack" style="display:none;background:transparent;color:var(--dim)">Back</button>
+  </div>
+</div>
+
+<div class="modal" id="profileModal">
+  <div class="sheet">
+    <h2 id="profTitle">Profile</h2>
+    <p id="profRecord" style="color:var(--dim);font-size:13.5px;margin:4px 0 0"></p>
+    <div id="profHistory" style="margin-top:8px"></div>
+    <button class="close" id="switchBtn">Switch player</button>
+    <button class="close" id="deleteBtn" style="display:none;background:transparent;color:#ff9a8a">Delete my account</button>
+    <button class="close" id="profClose" style="background:var(--panel2);color:var(--txt);border:1px solid var(--line)">Close</button>
+  </div>
+</div>
+
+<div class="modal" id="pickModal">
+  <div class="sheet">
+    <h2 id="pickTitle">Choose your club</h2>
+    <p id="pickSub" style="color:var(--dim);font-size:13px;margin:4px 0 0">Your club takes the near seat. Next you'll pick your partner — the other two clubs are your rivals, played by the computer.</p>
+    <div class="clubGrid" id="clubGrid"></div>
+    <button class="close" id="pickCancel" style="display:none;background:var(--panel2);color:var(--txt);border:1px solid var(--line)">Keep current game</button>
+  </div>
+</div>
+
+<script id="engine">
+"use strict";
+/* ============ LADU ENGINE (Asad's rules) — pure logic, no DOM ============ */
+const STARTS = [51, 12, 25, 38];           // track index of each player's entry square (arm tip, beside its 12)
+const PARTNER = [2, 3, 0, 1];              // 2v2 teams: 0&2, 1&3
+const TRACK = [ // [row,col] on a 15x15 board, travel order
+  [6,1],[6,2],[6,3],[6,4],[6,5],[5,6],[4,6],[3,6],[2,6],[1,6],[0,6],[0,7],[0,8],
+  [1,8],[2,8],[3,8],[4,8],[5,8],[6,9],[6,10],[6,11],[6,12],[6,13],[6,14],[7,14],[8,14],
+  [8,13],[8,12],[8,11],[8,10],[8,9],[9,8],[10,8],[11,8],[12,8],[13,8],[14,8],[14,7],[14,6],
+  [13,6],[12,6],[11,6],[10,6],[9,6],[8,5],[8,4],[8,3],[8,2],[8,1],[8,0],[7,0],[6,0]
+];
+const COLUMNS = [ // private home-column cells, mouth -> deep (progress 52..56)
+  [[7,1],[7,2],[7,3],[7,4],[7,5]],
+  [[1,7],[2,7],[3,7],[4,7],[5,7]],
+  [[7,13],[7,12],[7,11],[7,10],[7,9]],
+  [[13,7],[12,7],[11,7],[10,7],[9,7]]
+];
+const HOME = 57; // progress value = finished
+
+function newGame(){
+  return {
+    players: [0,1,2,3].map(()=>({ pieces:[-1,-1,-1,-1], finished:false, satOut:false })),
+    turn: 0, winner: null
+  };
+}
+function cloneState(s){ return JSON.parse(JSON.stringify(s)); }
+function trackIdx(p, q){ return (STARTS[p] + q) % 52; }        // q in 0..51
+function mouthIdx(p){ return (STARTS[p] + 51) % 52; }
+function isEntryIdx(idx){ return STARTS.indexOf(idx) >= 0; }
+function cellKey(p, q){
+  if (q < 0) return "Y" + p;
+  if (q <= 51) return "T" + trackIdx(p, q);
+  if (q <= 56) return "C" + p + ":" + (q - 52);
+  return "H" + p;
+}
+function cellCoord(p, q){
+  if (q <= 51) return TRACK[trackIdx(p, q)];
+  if (q <= 56) return COLUMNS[p][q - 52];
+  return null;
+}
+function buildOcc(s){
+  const occ = new Map();
+  s.players.forEach((pl, p)=>pl.pieces.forEach((q, i)=>{
+    if (q < 0 || q >= HOME) return;
+    const k = cellKey(p, q);
+    if (!occ.has(k)) occ.set(k, []);
+    occ.get(k).push({ p, i });
+  }));
+  return occ;
+}
+function stackOwnerAt(occ, key){
+  const list = occ.get(key) || [];
+  const counts = {};
+  list.forEach(e=>{ counts[e.p] = (counts[e.p]||0) + 1; });
+  for (const p in counts) if (counts[p] >= 2) return parseInt(p);
+  return null;
+}
+function landingInfo(occ, key, mover){
+  const so = stackOwnerAt(occ, key);
+  if (so !== null) return { legal: so === mover, kills: [] };       // own stack: join it; enemy stack: locked
+  const list = occ.get(key) || [];
+  if (key[0] === "T" && isEntryIdx(parseInt(key.slice(1)))) return { legal: true, kills: [] }; // entry = safe for all
+  return { legal: true, kills: list.filter(e => e.p !== mover) };
+}
+/* All single-die actions for the player who OWNS the pieces (owner). */
+function actionsForDie(s, owner, die){
+  const occ = buildOcc(s);
+  const pl = s.players[owner];
+  const acts = [];
+  pl.pieces.forEach((q, i)=>{
+    if (q >= HOME) return;
+    if (q < 0){ // in the yard: only a 6 brings a piece in
+      if (die === 6){
+        const key = "T" + STARTS[owner];
+        if (landingInfo(occ, key, owner).legal) acts.push({ type:"enter", piece:i, die, to:0 });
+      }
+      return;
+    }
+    // forward move
+    const nq = q + die;
+    if (nq <= HOME){
+      let ok = true;
+      for (let step = q + 1; step < nq; step++){
+        if (stackOwnerAt(occ, cellKey(owner, step)) !== null){ ok = false; break; } // can't pass any stack
+      }
+      if (ok && nq < HOME){
+        const li = landingInfo(occ, cellKey(owner, nq), owner);
+        if (!li.legal) ok = false;
+        else acts.push({ type:"move", piece:i, die, from:q, to:nq, kills: li.kills });
+      }
+      if (ok && nq === HOME) acts.push({ type:"move", piece:i, die, from:q, to:HOME, kills: [] });
+    }
+    // backward kill: rolled a 1, target exactly one square behind, not from / onto an entry square
+    if (die === 1 && q >= 1 && q <= 51){
+      const myIdx = trackIdx(owner, q);
+      if (!isEntryIdx(myIdx)){
+        const tIdx = trackIdx(owner, q - 1);
+        if (!isEntryIdx(tIdx)){
+          const list = occ.get("T" + tIdx) || [];
+          if (list.length === 1 && list[0].p !== owner)
+            acts.push({ type:"back", piece:i, die, from:q, to:q - 1, kills:[list[0]] });
+        }
+      }
+    }
+  });
+  return acts;
+}
+/* Apply an action to state s (mutates). Returns event info. */
+function applyAction(s, owner, a){
+  const pl = s.players[owner];
+  const ev = { kills: [], entered:false, homed:false };
+  if (a.type === "enter" || a.type === "enterDouble"){
+    pl.pieces[a.piece] = 0; ev.entered = true; return ev;
+  }
+  const kills = a.kills || [];
+  kills.forEach(v => { s.players[v.p].pieces[v.i] = -1; ev.kills.push(v); });
+  pl.pieces[a.piece] = a.to;
+  if (a.to === HOME){
+    ev.homed = true;
+    if (pl.pieces.every(q => q === HOME)) pl.finished = true;
+  }
+  const team = owner % 2;
+  const teamHome = [0,1,2,3].filter(p => p % 2 === team)
+    .reduce((n, p) => n + s.players[p].pieces.filter(q => q === HOME).length, 0);
+  if (teamHome === 8) s.winner = team;
+  return ev;
+}
+/* Enumerate every way to spend the rolled dice (plans), incl. partial spends. */
+function enumeratePlans(s, owner, dice){
+  const plans = [];
+  function rec(state, diceLeft, actions, kills, diceUsed, victims){
+    plans.push({ actions: actions.slice(), kills, diceUsed, victims: victims.slice(), finalState: state });
+    if (!diceLeft.length) return;
+    const triedValues = {};
+    diceLeft.forEach((die, di)=>{
+      if (triedValues[die]) return;                    // equal dice are interchangeable — branch once per value
+      triedValues[die] = 1;
+      const rest = diceLeft.slice(0, di).concat(diceLeft.slice(di + 1));
+      actionsForDie(state, owner, die).forEach(a=>{
+        const ns = cloneState(state);
+        const ev = applyAction(ns, owner, a);
+        rec(ns, rest, actions.concat([a]), kills + ev.kills.length, diceUsed + 1, victims.concat(ev.kills.map(v=>v.p)));
+      });
+    });
+    // doubles can bring a piece in, but the WHOLE roll is spent
+    if (dice.length === 2 && diceLeft.length === 2 && dice[0] === dice[1] && dice[0] !== 6){
+      const yardPiece = state.players[owner].pieces.findIndex(q => q < 0);
+      if (yardPiece >= 0){
+        const occ = buildOcc(state);
+        if (landingInfo(occ, "T" + STARTS[owner], owner).legal){
+          const a = { type:"enterDouble", piece:yardPiece, die:dice[0] };
+          const ns = cloneState(state);
+          applyAction(ns, owner, a);
+          plans.push({ actions:[a], kills:0, diceUsed:2, victims:[], finalState: ns });
+        }
+      }
+    }
+  }
+  rec(cloneState(s), dice.slice(), [], 0, 0, []);
+  return plans;
+}
+/* Plan preference only: use as many dice as possible. (Forced-kill is handled separately — direct kills only.) */
+function filterPlans(plans){
+  const useful = plans.filter(pl => pl.diceUsed > 0);
+  if (!useful.length) return [];
+  const maxDice = Math.max.apply(null, useful.map(pl => pl.diceUsed));
+  return useful.filter(pl => pl.diceUsed === maxDice);
+}
+function legalPlans(s, owner, dice){
+  return filterPlans(enumeratePlans(s, owner, dice));
+}
+/* --- Forced kill = DIRECT kill only: a kill available with ONE die from the roll's starting position.
+       A kill that needs two moves is legal to take but is NEVER forced. --- */
+function directKillsAt(s, owner, dice){
+  const out = [], seen = {};
+  dice.forEach(die=>{
+    actionsForDie(s, owner, die).forEach(a=>{
+      if ((a.kills||[]).length){
+        const key = a.piece + ":" + a.die + ":" + a.to;
+        if (!seen[key]){ seen[key] = 1; out.push({ piece:a.piece, die:a.die, to:a.to }); }
+      }
+    });
+  });
+  return out;
+}
+function matchesDirectKill(a, dks, movedPieces){
+  if (!(a.kills||[]).length) return false;
+  if (movedPieces.indexOf(a.piece) >= 0) return false;   // the piece already moved this roll — no longer the direct kill
+  return dks.some(dk => dk.piece === a.piece && dk.die === a.die && dk.to === a.to);
+}
+function directKillAvailable(s, owner, remainingDice, dks, movedPieces){
+  return dks.some(dk => movedPieces.indexOf(dk.piece) < 0 && remainingDice.indexOf(dk.die) >= 0 &&
+    actionsForDie(s, owner, dk.die).some(a => a.piece === dk.piece && a.to === dk.to && (a.kills||[]).length));
+}
+/* Legal single-die step actions for interactive (human) play, with the direct-kill force applied. */
+function allowedStepActions(s, owner, remainingDice, rollInfo){
+  const cand = [], seen = {};
+  const values = [];
+  remainingDice.forEach(d=>{ if (values.indexOf(d) < 0) values.push(d); });
+  values.forEach(die=>{
+    actionsForDie(s, owner, die).forEach(a=>{
+      const key = a.type + ":" + a.piece + ":" + a.die;
+      if (!seen[key]){ seen[key] = 1; cand.push(a); }
+    });
+  });
+  if (remainingDice.length === 2 && remainingDice[0] === remainingDice[1] && remainingDice[0] !== 6){
+    const yardPiece = s.players[owner].pieces.findIndex(q => q < 0);
+    if (yardPiece >= 0 && landingInfo(buildOcc(s), "T" + STARTS[owner], owner).legal)
+      cand.push({ type:"enterDouble", piece:yardPiece, die:remainingDice[0] });
+  }
+  if (!rollInfo || !rollInfo.mustKill || rollInfo.killSatisfied) return cand;
+  const dks = rollInfo.directKills, moved = rollInfo.movedPieces;
+  return cand.filter(a=>{
+    if (matchesDirectKill(a, dks, moved)) return true;
+    if ((a.kills||[]).length) return false;              // any other capture would dodge the forced kill
+    const ns = cloneState(s); applyAction(ns, owner, a);
+    const rem = remainingDice.slice();
+    if (a.type === "enterDouble") rem.length = 0;
+    else { const ix = rem.indexOf(a.die); if (ix >= 0) rem.splice(ix, 1); }
+    return directKillAvailable(ns, owner, rem, dks, moved.concat([a.piece])); // neutral move only if the direct kill survives it
+  });
+}
+/* Does this full plan take one of the roll-start direct kills? (AI force check.) */
+function planSatisfiesForce(plan, dks){
+  if (!dks.length) return true;
+  const moved = [];
+  for (const a of plan.actions){
+    if (matchesDirectKill(a, dks, moved)) return true;
+    moved.push(a.piece);
+  }
+  return false;
+}
+/* Extra roll? kills always earn one; a 6 earns one unless this roll was earned by a kill. */
+function earnsExtraRoll(dice, kills, rollSource){
+  if (kills > 0) return true;
+  if (dice.indexOf(6) >= 0 && rollSource !== "kill") return true;
+  return false;
+}
+/* Who moves this turn: a finished player who already sat out a round plays their partner's hand. */
+function turnOwner(s){
+  const t = s.turn, pl = s.players[t];
+  if (pl.finished && pl.satOut) return PARTNER[t];
+  return t;
+}
+</script>
+
+<script>
+"use strict";
+/* ============ UI ============ */
+/* ============ CLUBS (Premier League edition) ============ */
+const CLUBS = [
+  { name:"Arsenal",    short:"ARS", initials:"AFC",  color:"#ee2737", deep:"#8c1116", trim:"#e8c874", txt:"#ffffff", nick:"The Gunners",   motto:"Victoria Concordia Crescit" },
+  { name:"Liverpool",  short:"LIV", initials:"LFC",  color:"#00a35c", deep:"#0a4d2e", trim:"#f0b323", txt:"#ffffff", nick:"The Reds",      motto:"You'll Never Walk Alone" },
+  { name:"Man City",   short:"MCI", initials:"MCFC", color:"#6cabdd", deep:"#14406b", trim:"#ffffff", txt:"#0b2a4a", nick:"The Citizens",  motto:"Superbia in Proelio" },
+  { name:"Man United", short:"MUN", initials:"MUFC", color:"#ffd400", deep:"#211d1d", trim:"#ffd400", txt:"#221a02", nick:"The Red Devils", motto:"Red Devils" }
+];
+let seatClub = [0, 1, 2, 3];                 // club index per seat; seat 0 = the human
+let COLORS = [], YARDCOLORS = [], NAMES = [], CLUBNAMES = [];
+let identity = null;                          // { mode:'account'|'guest', name, key?, sWins, sLosses }
+function applyClubs(picked, partner){
+  const rivals = CLUBS.map((_, i) => i).filter(i => i !== picked && i !== partner);
+  seatClub = [picked, rivals[0], partner, rivals[1]];
+  COLORS     = seatClub.map(ci => CLUBS[ci].color);
+  YARDCOLORS = seatClub.map(ci => CLUBS[ci].deep);
+  CLUBNAMES  = seatClub.map(ci => CLUBS[ci].name);
+  NAMES      = seatClub.map((ci, p) => CLUBS[ci].name + (p === 0 ? " (" + (identity ? identity.name : "You") + ")" : p === 2 ? " (Partner)" : ""));
+  const sub = $("subTitle");
+  if (sub) sub.textContent = "You: " + CLUBNAMES[0] + " · Partner: " + CLUBNAMES[2] + " · Rivals: " + CLUBNAMES[1] + ", " + CLUBNAMES[3];
+}
+
+/* ============ PLAYER ACCOUNTS (device-local profiles) ============ */
+const LS_KEY = "ladu_profiles_v1";
+function loadStore(){ try { return JSON.parse(localStorage.getItem(LS_KEY)) || { accounts:{} }; } catch(e){ return { accounts:{} }; } }
+let store = loadStore();
+function saveStore(){ try { localStorage.setItem(LS_KEY, JSON.stringify(store)); } catch(e){} }
+function pinHash(pin){ let h = 0; const s = "ladu::" + pin; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return String(h); }
+function nameKey(name){ return name.trim().toLowerCase(); }
+function setIdentity(o){ identity = o; updateChip(); }
+function updateChip(){
+  const chip = $("profileChip"); if (!chip) return;
+  if (!identity){ chip.textContent = "👤 Sign in"; return; }
+  if (identity.mode === "account"){
+    const a = store.accounts[identity.key];
+    chip.textContent = "👤 " + identity.name + (a ? " · " + a.wins + "W–" + a.losses + "L" : "");
+  } else {
+    chip.textContent = "👤 " + identity.name + " · guest";
+  }
+}
+function recordResult(humanWon){
+  if (!identity) return;
+  if (identity.mode === "account"){
+    const a = store.accounts[identity.key]; if (!a) return;
+    if (humanWon){ a.wins++; a.streak = a.streak > 0 ? a.streak + 1 : 1; }
+    else { a.losses++; a.streak = a.streak < 0 ? a.streak - 1 : -1; }
+    a.history.unshift({ d: new Date().toISOString().slice(0, 10), you: CLUBNAMES[0], partner: CLUBNAMES[2], rivals: CLUBNAMES[1] + " & " + CLUBNAMES[3], r: humanWon ? "W" : "L" });
+    a.history = a.history.slice(0, 20);
+    saveStore();
+  } else {
+    if (humanWon) identity.sWins++; else identity.sLosses++;
+  }
+  updateChip();
+}
+/* ---------- identity screen ---------- */
+let loginKey = null;
+function renderAcctList(){
+  const el = $("acctList"); if (!el) return;
+  const keys = Object.keys(store.accounts).sort((x, y) => store.accounts[y].wins - store.accounts[x].wins);
+  if (!keys.length){ el.innerHTML = '<p style="color:var(--dim);font-size:12.5px;margin:8px 0 0">No accounts on this device yet — create one below.</p>'; return; }
+  el.innerHTML = '<h3 style="margin-bottom:2px">Your accounts</h3>';
+  keys.forEach(k=>{
+    const a = store.accounts[k];
+    const row = document.createElement("div");
+    row.className = "acctRow";
+    row.innerHTML = "<span><b>" + a.name + '</b> <span class="rec">' + a.wins + "W – " + a.losses + 'L</span></span><span class="play">Play ▸</span>';
+    row.onclick = ()=>{
+      loginKey = k;
+      $("loginName").textContent = a.name;
+      $("pinInput").value = ""; $("loginMsg").textContent = "";
+      $("loginBox").style.display = "";
+    };
+    el.appendChild(row);
+  });
+}
+function openIdentity(){
+  renderAcctList();
+  $("loginBox").style.display = "none";
+  $("idBack").style.display = identity ? "" : "none";
+  $("idModal").classList.add("show");
+}
+function enterGame(){
+  $("idModal").classList.remove("show");
+  updateChip();
+  showPicker();
+}
+/* ---------- profile view ---------- */
+let deleteArmed = false;
+function renderProfile(){
+  if (!identity) return;
+  $("profTitle").textContent = "👤 " + identity.name + (identity.mode === "guest" ? " (guest)" : "");
+  const hist = $("profHistory");
+  if (identity.mode === "account"){
+    const a = store.accounts[identity.key];
+    const games = a.wins + a.losses;
+    const streakTxt = a.streak > 0 ? " · streak W" + a.streak : a.streak < 0 ? " · streak L" + (-a.streak) : "";
+    $("profRecord").textContent = games + " games · " + a.wins + "W – " + a.losses + "L" + (games ? " · " + Math.round(100 * a.wins / games) + "% wins" : "") + streakTxt;
+    hist.innerHTML = a.history.length
+      ? a.history.map(h => '<div class="histRow"><span>' + h.d + " · " + h.you + " + " + h.partner + '<br><span style="color:var(--dim)">vs ' + h.rivals + '</span></span><span class="' + (h.r === "W" ? "rW" : "rL") + '">' + h.r + "</span></div>").join("")
+      : '<p style="color:var(--dim);font-size:12.5px">No matches yet — your history lands here after each game.</p>';
+    $("deleteBtn").style.display = "";
+  } else {
+    $("profRecord").textContent = "This session: " + identity.sWins + "W – " + identity.sLosses + "L · guest games aren't saved";
+    hist.innerHTML = "";
+    $("deleteBtn").style.display = "none";
+  }
+  deleteArmed = false;
+  $("deleteBtn").textContent = "Delete my account";
+}
+const CELL = 100/15;
+let S = newGame();
+let busy = false, soundOn = true, audioCtx = null;
+let rollCtx = null; // { dice:[..], remaining:[..], kills:0, source:'start', owner:0 }
+let rollStreak = 0;
+let gameStarted = false;
+
+const $ = id => document.getElementById(id);
+const boardEl = $("board"), logEl = $("log"), bannerTxt = $("bannerTxt"), bannerDot = $("bannerDot"), rollBtn = $("rollBtn"), actionsEl = $("actions");
+
+function beep(freq, dur, type, vol){
+  if (!soundOn) return;
+  try{
+    audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+    const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+    o.type = type||"sine"; o.frequency.value = freq;
+    g.gain.value = vol||0.06;
+    o.connect(g); g.connect(audioCtx.destination);
+    o.start(); g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + (dur||0.09));
+    o.stop(audioCtx.currentTime + (dur||0.09));
+  }catch(e){}
+}
+const sfx = {
+  roll(){ beep(300,0.07,"square",0.03); setTimeout(()=>beep(420,0.07,"square",0.03),70); },
+  step(){ beep(660,0.045,"sine",0.035); },
+  kill(){ beep(160,0.22,"sawtooth",0.07); },
+  enter(){ beep(520,0.09,"sine",0.05); setTimeout(()=>beep(700,0.1,"sine",0.05),80); },
+  home(){ beep(620,0.09,"sine",0.05); setTimeout(()=>beep(830,0.14,"sine",0.05),90); },
+  win(){ [523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,0.16,"sine",0.06),i*130)); }
+};
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+function logMsg(html){
+  const d = document.createElement("div"); d.innerHTML = html;
+  logEl.prepend(d);
+  while (logEl.children.length > 7) logEl.removeChild(logEl.lastChild);
+}
+function who(p){ return '<b style="color:'+COLORS[p]+'">'+NAMES[p]+"</b>"; }
+
+/* ---------- board construction ---------- */
+function segNumber(idx){
+  for (let p = 0; p < 4; p++){
+    const d = (idx - STARTS[p] + 52) % 52;
+    if (d === 0) return null;              // entry squares are unnumbered
+    if (d >= 1 && d <= 12) return d;       // 1..12 along each side; every home mouth is a 12
+  }
+  return null;
+}
+function buildBoard(){
+  boardEl.innerHTML = "";
+  // yards — club panels, inspired by illustrated house boards: deep club color, crest initials, name plate
+  const yardPos = [[0,0],[0,9],[9,9],[9,0]]; // [row,col] of 6x6 corner per player
+  for (let p = 0; p < 4; p++){
+    const club = CLUBS[seatClub[p]];
+    const y = document.createElement("div");
+    y.className = "yard";
+    y.id = "yard-" + p;
+    y.style.cssText = "left:"+(yardPos[p][1]*CELL)+"%;top:"+(yardPos[p][0]*CELL)+"%;width:"+(6*CELL)+"%;height:"+(6*CELL)+"%;background:radial-gradient(circle at 50% 32%, "+COLORS[p]+"59, transparent 75%),"+YARDCOLORS[p]+";";
+    y.innerHTML = '<div class="inner" style="box-shadow:inset 0 0 0 3px '+club.trim+'">' +
+      '<div class="crestTxt" style="color:'+club.trim+'">'+club.initials+'</div>' +
+      [[13,13],[53,13],[13,53],[53,53]].map(pt=>'<div class="slot" style="left:'+pt[0]+'%;top:'+pt[1]+'%;border:2px solid '+COLORS[p]+'"></div>').join("") +
+      '<div class="yardName" style="color:'+club.trim+'">'+club.name+'</div>' +
+      "</div>";
+    boardEl.appendChild(y);
+  }
+  // track cells
+  const MOUTHS = [0,1,2,3].map(p => mouthIdx(p));
+  TRACK.forEach((rc, idx)=>{
+    const c = document.createElement("div");
+    c.className = "cell";
+    let cls = "";
+    if (isEntryIdx(idx)){
+      const owner = STARTS.indexOf(idx);
+      cls = " entry safeIco";
+      c.style.background = COLORS[owner] + "55";
+    }
+    if (MOUTHS.indexOf(idx) >= 0) cls += " mouth";
+    if ((rc[0] + rc[1]) % 2 === 0) cls += " alt";
+    c.className = "cell" + cls;
+    c.style.cssText += "left:"+(rc[1]*CELL)+"%;top:"+(rc[0]*CELL)+"%;width:"+CELL+"%;height:"+CELL+"%;";
+    const n = segNumber(idx);
+    c.innerHTML = n ? '<span class="num">'+n+"</span>" : (isEntryIdx(idx) ? '<span class="num">★</span>' : "");
+    boardEl.appendChild(c);
+  });
+  // home columns — Roman numerals, counting down to home: V at the mouth, I beside the center
+  const ROMAN = ["V", "IV", "III", "II", "I"];
+  for (let p = 0; p < 4; p++){
+    COLUMNS[p].forEach((rc, k)=>{
+      const c = document.createElement("div");
+      c.className = "cell";
+      c.style.cssText = "left:"+(rc[1]*CELL)+"%;top:"+(rc[0]*CELL)+"%;width:"+CELL+"%;height:"+CELL+"%;background:"+YARDCOLORS[p]+";";
+      c.innerHTML = '<span class="num" style="color:#fff;font-family:Georgia,serif">'+ROMAN[k]+"</span>";
+      boardEl.appendChild(c);
+    });
+  }
+  // center
+  const ctr = document.createElement("div");
+  ctr.className = "centerHome";
+  ctr.style.cssText = "left:"+(6*CELL)+"%;top:"+(6*CELL)+"%;width:"+(3*CELL)+"%;height:"+(3*CELL)+"%;";
+  ctr.innerHTML = '<div class="star">★</div><div class="t">LADU</div><div class="s" id="centerScore"></div>';
+  boardEl.appendChild(ctr);
+}
+/* ---------- rendering ---------- */
+function yardSlotCenter(p, i){
+  const yardPos = [[0,0],[0,9],[9,9],[9,0]];
+  const slots = [[13,13],[53,13],[13,53],[53,53]];
+  const innerOff = 6 * 0.14; // inner box inset approx
+  const base = [yardPos[p][1]*CELL, yardPos[p][0]*CELL];
+  const innerSize = 6*CELL*0.72;
+  const x = base[0] + (6*CELL - innerSize)/2 + (slots[i][0]+17)/100*innerSize;
+  const y = base[1] + (6*CELL - innerSize)/2 + (slots[i][1]+17)/100*innerSize;
+  return [x, y];
+}
+function renderPieces(overrides){
+  boardEl.querySelectorAll(".piece").forEach(e=>e.remove());
+  const groups = {};
+  for (let p = 0; p < 4; p++) for (let i = 0; i < 4; i++){
+    let q = S.players[p].pieces[i];
+    if (overrides && overrides[p+":"+i] !== undefined) q = overrides[p+":"+i];
+    if (q >= HOME) continue;
+    const key = q < 0 ? "Y"+p+":"+i : cellKey(p, q);
+    (groups[key] = groups[key] || []).push({ p, i, q });
+  }
+  Object.keys(groups).forEach(key=>{
+    const list = groups[key];
+    list.forEach((e, k)=>{
+      let cx, cy, size = CELL*0.84;
+      if (e.q < 0){ const c = yardSlotCenter(e.p, e.i); cx = c[0]; cy = c[1]; }
+      else {
+        const rc = cellCoord(e.p, e.q);
+        cx = (rc[1]+0.5)*CELL; cy = (rc[0]+0.5)*CELL;
+        if (list.length > 1){
+          size = CELL*0.52;
+          const off = [[-0.24,-0.24],[0.24,-0.24],[-0.24,0.24],[0.24,0.24]][k % 4];
+          cx += off[0]*CELL; cy += off[1]*CELL;
+        }
+      }
+      const d = document.createElement("div");
+      d.className = "piece" + (list.length > 1 ? " mini" : "");
+      d.id = "piece-"+e.p+"-"+e.i;
+      d.style.cssText = "left:calc("+cx+"% - "+(size/2)+"%);top:calc("+cy+"% - "+(size/2)+"%);width:"+size+"%;height:"+size+"%;background:"+COLORS[e.p]+";color:"+CLUBS[seatClub[e.p]].txt+";font-size:"+(list.length>1?8:11)+"px;";
+      d.textContent = e.i + 1;
+      boardEl.appendChild(d);
+    });
+  });
+}
+function homeCount(p){ return S.players[p].pieces.filter(q=>q===HOME).length; }
+function renderScores(){
+  const el = $("scores"); el.innerHTML = "";
+  for (let p = 0; p < 4; p++){
+    const d = document.createElement("div");
+    d.className = "score" + (S.turn === p && !S.winner ? " turn" : "");
+    if (S.turn === p && !S.winner){ d.style.borderColor = COLORS[p]; d.style.background = COLORS[p] + "30"; }
+    const tag = S.players[p].finished ? (S.players[p].satOut ? " · 2nd hand" : " · done") : "";
+    const role = p === 0 ? "Your club" : p === 2 ? "Partner club" : "Rival club";
+    d.innerHTML = '<span class="pip" style="background:'+COLORS[p]+'"></span><span><b>'+NAMES[p]+'</b> <span class="team">'+role+tag+'</span></span><span class="home">🏠 '+homeCount(p)+"/4</span>";
+    el.appendChild(d);
+  }
+  const cs = $("centerScore");
+  if (cs) cs.textContent = CLUBS[seatClub[0]].short + "+" + CLUBS[seatClub[2]].short + " " + (homeCount(0)+homeCount(2)) + " — " + (homeCount(1)+homeCount(3)) + " " + CLUBS[seatClub[1]].short + "+" + CLUBS[seatClub[3]].short;
+  bannerDot.style.background = COLORS[S.turn];
+}
+function paintTurn(){
+  const c = COLORS[S.turn];
+  const banner = document.querySelector(".banner");
+  banner.style.background = c;
+  banner.style.color = S.turn === 2 ? "#221a02" : "#ffffff";
+  bannerDot.style.background = "#ffffff";
+  bannerDot.style.borderColor = "rgba(0,0,0,.25)";
+  boardEl.style.boxShadow = "0 0 0 4px " + c + ", 0 8px 30px rgba(0,0,0,.45)";
+  for (let p = 0; p < 4; p++){
+    const y = $("yard-" + p);
+    if (y) y.classList.toggle("activeYard", S.turn === p && !S.winner);
+  }
+}
+function renderAll(overrides){ renderPieces(overrides); renderScores(); paintTurn(); }
+function setBanner(html){ bannerTxt.innerHTML = html; }
+
+/* ---------- dice ---------- */
+const PIPS = {1:[4],2:[0,8],3:[0,4,8],4:[0,2,6,8],5:[0,2,4,6,8],6:[0,2,3,5,6,8]};
+function drawDie(el, v){
+  el.innerHTML = "";
+  PIPS[v].forEach(pos=>{
+    const p = document.createElement("div"); p.className = "p";
+    const r = Math.floor(pos/3), c = pos%3;
+    p.style.left = (14 + c*30) + "%"; p.style.top = (14 + r*30) + "%";
+    el.appendChild(p);
+  });
+}
+function drawDice(){ if (rollCtx){ drawDie($("die0"), rollCtx.dice[0]); drawDie($("die1"), rollCtx.dice[1]); } }
+
+/* ---------- AI ---------- */
+function dangerPenalty(state, owner){
+  let pen = 0;
+  const occ = buildOcc(state);
+  const mySingles = [];
+  state.players[owner].pieces.forEach(q=>{
+    if (q < 0 || q >= 51) return;
+    const idx = trackIdx(owner, q);
+    if (isEntryIdx(idx)) return;
+    if ((occ.get("T"+idx)||[]).filter(e=>e.p===owner).length === 1) mySingles.push(idx);
+  });
+  for (let e = 0; e < 4; e++){
+    if (e === owner) continue;
+    state.players[e].pieces.forEach(q=>{
+      if (q < 0 || q > 51) return;
+      const eIdx = trackIdx(e, q);
+      mySingles.forEach(mIdx=>{
+        const dist = (mIdx - eIdx + 52) % 52;         // enemy drives forward onto me
+        if (dist >= 1 && dist <= 6) pen += 15;
+        const back = (eIdx - mIdx + 52) % 52;          // enemy sits 1 ahead of me -> backward-kill risk
+        if (back === 1) pen += 9;
+      });
+    });
+  }
+  return pen;
+}
+function scorePlan(plan, owner, before){
+  const st = plan.finalState;
+  let sc = Math.random() * 4;
+  plan.actions.forEach(a=>{ if (a.type === "enter" || a.type === "enterDouble") sc += 45; });
+  (plan.victims||[]).forEach(v=>{
+    if (v === PARTNER[owner]) sc -= 55;               // forced sometimes, but never preferred
+    else sc += 95;
+  });
+  let progBefore = 0, progAfter = 0, homeB = 0, homeA = 0;
+  before.players[owner].pieces.forEach(q=>{ progBefore += Math.max(q, -6); if (q===HOME) homeB++; });
+  st.players[owner].pieces.forEach(q=>{ progAfter += Math.max(q, -6); if (q===HOME) homeA++; });
+  sc += (progAfter - progBefore) * 1.2;
+  sc += (homeA - homeB) * 70;
+  // stacks formed
+  const occB = buildOcc(before), occA = buildOcc(st);
+  let stB = 0, stA = 0;
+  occB.forEach((l,k)=>{ if (l.filter(e=>e.p===owner).length >= 2) stB++; });
+  occA.forEach((l,k)=>{ if (l.filter(e=>e.p===owner).length >= 2) stA++; });
+  sc += (stA - stB) * 30;
+  sc -= dangerPenalty(st, owner) - dangerPenalty(before, owner);
+  return sc;
+}
+
+/* ---------- animation ---------- */
+async function animateAction(owner, a, ev){
+  const el = $("piece-"+owner+"-"+a.piece);
+  if (a.type === "enter" || a.type === "enterDouble"){ sfx.enter(); renderAll(); await sleep(240); return; }
+  if (a.type === "move" || a.type === "back"){
+    const dir = a.type === "back" ? -1 : 1;
+    let cur = a.from;
+    while (cur !== a.to){
+      cur += dir;
+      const ov = {}; ov[owner+":"+a.piece] = cur;
+      renderAll(ov); sfx.step();
+      await sleep(115);
+    }
+  }
+  if (ev && ev.kills && ev.kills.length){
+    for (const v of ev.kills){
+      const ve = $("piece-"+v.p+"-"+v.i);
+      if (ve) ve.classList.add("dead");
+    }
+    sfx.kill(); await sleep(430);
+  }
+  if (ev && ev.homed) sfx.home();
+  renderAll();
+  await sleep(120);
+}
+
+/* ---------- turn flow ---------- */
+function nextPlayer(){ S.turn = (S.turn + 1) % 4; rollStreak = 0; }
+async function startTurn(){
+  renderAll();
+  if (S.winner !== null){ showWin(); return; }
+  // finished player sits out exactly one round
+  if (S.players[S.turn].finished && !S.players[S.turn].satOut){
+    S.players[S.turn].satOut = true;
+    logMsg(who(S.turn) + " finished all 4 pieces — sits this round out, then plays as a second hand.");
+    nextPlayer(); renderAll();
+    await sleep(650); startTurn(); return;
+  }
+  const owner = turnOwner(S);
+  const secondHand = owner !== S.turn;
+  rollCtx = null; actionsEl.classList.remove("show"); actionsEl.innerHTML = "";
+  drawDie($("die0"), 6); drawDie($("die1"), 6);
+  $("die0").classList.remove("spent"); $("die1").classList.remove("spent");
+  if (S.turn === 0){
+    setBanner(secondHand ? "YOUR TURN — you're moving Partner's pieces now. Roll!" : "YOUR TURN — roll the dice.");
+    rollBtn.disabled = false; rollBtn.textContent = "🎲 Roll dice"; rollBtn.classList.add("ready");
+  } else {
+    setBanner(CLUBNAMES[S.turn].toUpperCase() + "'S TURN" + (secondHand ? " — playing " + CLUBNAMES[owner] + "'s hand…" : "…"));
+    rollBtn.disabled = true; rollBtn.textContent = "Waiting…"; rollBtn.classList.remove("ready");
+    busy = true;
+    await sleep(750);
+    await doRoll();
+  }
+  renderAll();
+}
+async function doRoll(){
+  const t = S.turn, owner = turnOwner(S);
+  const dice = [1 + Math.floor(Math.random()*6), 1 + Math.floor(Math.random()*6)];
+  const prevSource = rollCtx && rollCtx.nextSource ? rollCtx.nextSource : "start";
+  rollCtx = { dice, remaining: dice.slice(), kills: 0, source: rollStreak === 0 ? "start" : prevSource, owner };
+  rollCtx.directKills = directKillsAt(S, owner, dice);
+  rollCtx.mustKill = rollCtx.directKills.length > 0;
+  rollCtx.movedPieces = [];
+  rollCtx.killSatisfied = false;
+  sfx.roll();
+  $("die0").classList.add("rolling"); $("die1").classList.add("rolling");
+  drawDice();
+  await sleep(480);
+  $("die0").classList.remove("rolling"); $("die1").classList.remove("rolling");
+  const srcNote = rollCtx.source === "kill" ? " (bonus roll)" : rollCtx.source === "six" ? " (bonus roll)" : "";
+  logMsg(who(t) + " rolled <b>" + dice[0] + " + " + dice[1] + "</b>" + srcNote + (owner !== t ? " for " + who(owner) + "'s hand" : "") + ".");
+  if (t === 0) await humanSpend();
+  else await aiSpend(owner);
+}
+async function finishRoll(){
+  const t = S.turn;
+  const earned = rollCtx && earnsExtraRoll(rollCtx.dice, rollCtx.kills, rollCtx.source);
+  const kills = rollCtx ? rollCtx.kills : 0;
+  actionsEl.classList.remove("show"); actionsEl.innerHTML = "";
+  boardEl.querySelectorAll(".piece.glow").forEach(e=>e.classList.remove("glow"));
+  renderAll();
+  if (S.winner !== null){ showWin(); return; }
+  if (earned && rollStreak < 14){
+    rollStreak++;
+    rollCtx = { nextSource: kills > 0 ? "kill" : "six" };
+    logMsg(who(t) + (kills > 0 ? " killed — rolls again!" : " rolled a 6 — rolls again!"));
+    if (t === 0){
+      setBanner("YOUR BONUS ROLL — go again.");
+      rollBtn.disabled = false; rollBtn.textContent = "🎲 Roll again"; rollBtn.classList.add("ready");
+      busy = false;
+    } else {
+      await sleep(650); busy = true; await doRoll();
+    }
+    return;
+  }
+  rollCtx = null; busy = false;
+  nextPlayer();
+  startTurn();
+}
+/* ----- human spending (die by die; only DIRECT one-die kills are forced) ----- */
+async function humanSpend(){
+  busy = true;
+  while (rollCtx && rollCtx.remaining.length){
+    const acts = allowedStepActions(S, rollCtx.owner, rollCtx.remaining, rollCtx);
+    if (!acts.length) break;
+    const chosen = await waitHumanChoice(acts);
+    if (!chosen) break;
+    if (matchesDirectKill(chosen, rollCtx.directKills, rollCtx.movedPieces)) rollCtx.killSatisfied = true;
+    rollCtx.movedPieces.push(chosen.piece);
+    if (chosen.type === "enterDouble") rollCtx.remaining = [];
+    else { const idx = rollCtx.remaining.indexOf(chosen.die); if (idx >= 0) rollCtx.remaining.splice(idx, 1); }
+    const ev = applyAction(S, rollCtx.owner, chosen);
+    rollCtx.kills += ev.kills.length;
+    reportEvents(rollCtx.owner, chosen, ev);
+    await animateAction(rollCtx.owner, chosen, ev);
+    if (S.winner !== null) break;
+  }
+  busy = false;
+  await finishRoll();
+}
+function waitHumanChoice(acts){
+  return new Promise(resolve=>{
+    const owner = rollCtx.owner;
+    setBanner(rollCtx.mustKill && !rollCtx.killSatisfied ?
+      "A DIRECT KILL is on — you must take it. Tap a glowing piece." :
+      "Tap a glowing piece to move it.");
+    const byPiece = {};
+    acts.forEach(a=>{ (byPiece[a.piece] = byPiece[a.piece] || []).push(a); });
+    Object.keys(byPiece).forEach(pi=>{
+      const el = $("piece-"+owner+"-"+pi);
+      if (el){ el.classList.add("glow"); el.onclick = ()=>pick(+pi); }
+    });
+    function cleanup(){
+      boardEl.querySelectorAll(".piece").forEach(e=>{ e.classList.remove("glow"); e.onclick = null; });
+      actionsEl.classList.remove("show"); actionsEl.innerHTML = "";
+    }
+    function pick(pi){
+      const options = byPiece[pi];
+      if (options.length === 1){ cleanup(); resolve(options[0]); return; }
+      actionsEl.innerHTML = '<span class="lbl">Piece '+(pi+1)+' — choose:</span>';
+      options.forEach(a=>{
+        const b = document.createElement("button");
+        b.textContent = a.type === "enter" ? "Bring in (6)" :
+          a.type === "enterDouble" ? "Bring in (whole roll)" :
+          a.type === "back" ? "⬅ Kill backwards (1)" :
+          (a.to === HOME ? "Move "+a.die+" — HOME!" : "Move "+a.die+((a.kills||[]).length ? " — KILL!" : ""));
+        b.onclick = ()=>{ cleanup(); resolve(a); };
+        actionsEl.appendChild(b);
+      });
+      actionsEl.classList.add("show");
+    }
+  });
+}
+/* ----- AI spending (whole-plan choice; forced only by a direct one-die kill) ----- */
+async function aiSpend(owner){
+  let plans = enumeratePlans(S, owner, rollCtx.dice).filter(pl => pl.diceUsed > 0);
+  if (rollCtx.mustKill){
+    const forced = plans.filter(pl => planSatisfiesForce(pl, rollCtx.directKills));
+    if (forced.length) plans = forced;
+  }
+  plans = filterPlans(plans);
+  if (!plans.length){ await finishRoll(); return; }
+  let best = null, bestScore = -1e9;
+  plans.forEach(pl=>{
+    const sc = scorePlan(pl, owner, S);
+    if (sc > bestScore){ bestScore = sc; best = pl; }
+  });
+  for (const a of best.actions){
+    const ev = applyAction(S, owner, a);
+    rollCtx.kills += ev.kills.length;
+    reportEvents(owner, a, ev);
+    await animateAction(owner, a, ev);
+    await sleep(180);
+    if (S.winner !== null) break;
+  }
+  await finishRoll();
+}
+function reportEvents(owner, a, ev){
+  if (a.type === "enter" || a.type === "enterDouble") logMsg(who(owner) + " brings a piece in.");
+  if (ev.kills && ev.kills.length) ev.kills.forEach(v=>{
+    logMsg("💥 " + who(owner) + " killed " + who(v.p) + "'s piece!");
+  });
+  if (ev.homed) logMsg("🏠 " + who(owner) + " got a piece HOME (" + homeCount(owner) + "/4).");
+  if (S.players[owner].finished && ev.homed) logMsg("🎉 " + who(owner) + " has all 4 pieces home!");
+}
+function showWin(){
+  renderAll(); sfx.win();
+  const teamA = S.winner === 0;
+  recordResult(teamA);
+  $("winTxt").textContent = teamA ? "🏆 Your team wins!" : "🏆 The rivals win";
+  $("winSub").textContent = teamA
+    ? CLUBNAMES[0] + " and " + CLUBNAMES[2] + " got all 8 pieces home."
+    : CLUBNAMES[1] + " and " + CLUBNAMES[3] + " got all 8 pieces home this time.";
+  $("winModal").classList.add("show");
+  rollBtn.disabled = true;
+}
+function newGameUI(){
+  S = newGame(); rollCtx = null; rollStreak = 0; busy = false;
+  logEl.innerHTML = "";
+  logMsg("New game. Your rules, your board — you start. Get a 6 or a double to bring a piece in.");
+  $("winModal").classList.remove("show");
+  $("pickModal").classList.remove("show");
+  buildBoard(); renderAll();
+  startTurn();
+}
+/* ---------- club picker: step 1 your club, step 2 your partner ---------- */
+let pickStage = 0, pickOwn = -1;
+function showPicker(){
+  pickStage = 0; pickOwn = -1;
+  renderPickStep();
+  $("pickCancel").style.display = gameStarted ? "" : "none";
+  $("pickModal").classList.add("show");
+}
+function renderPickStep(){
+  const grid = $("clubGrid"); grid.innerHTML = "";
+  if (pickStage === 0){
+    $("pickTitle").textContent = "Choose your club";
+    $("pickSub").textContent = "Your club takes the near seat. Next you'll pick your partner — the other two clubs are your rivals, played by the computer.";
+  } else {
+    $("pickTitle").textContent = "Choose your partner";
+    $("pickSub").textContent = "You picked " + CLUBS[pickOwn].name + ". Your partner plays the far seat in the 2v2 — the two clubs left over are your rivals.";
+  }
+  const pool = pickStage === 0 ? CLUBS.map((_, i) => i) : CLUBS.map((_, i) => i).filter(i => i !== pickOwn);
+  pool.forEach(i=>{
+    const club = CLUBS[i];
+    const b = document.createElement("button");
+    b.className = "clubCard";
+    b.innerHTML = '<span class="band" style="background:'+club.color+'"></span><b>'+club.name+'</b><span>'+club.nick+'</span><span class="motto">"'+club.motto+'"</span>';
+    b.onclick = ()=>{
+      if (pickStage === 0){ pickOwn = i; pickStage = 1; renderPickStep(); return; }
+      applyClubs(pickOwn, i);
+      gameStarted = true;
+      newGameUI();
+      logMsg("You picked <b>"+CLUBNAMES[0]+"</b>, partnered with <b>"+CLUBNAMES[2]+"</b>. Rivals: <b>"+CLUBNAMES[1]+"</b> and <b>"+CLUBNAMES[3]+"</b>. First team to get all 8 home wins.");
+    };
+    grid.appendChild(b);
+  });
+}
+/* ---------- wiring ---------- */
+rollBtn.onclick = async ()=>{ if (busy || S.turn !== 0) return; busy = true; rollBtn.disabled = true; rollBtn.classList.remove("ready"); await doRoll(); };
+$("profileChip").onclick = ()=>{ if (!identity) openIdentity(); else { renderProfile(); $("profileModal").classList.add("show"); } };
+$("loginBtn").onclick = ()=>{
+  const a = store.accounts[loginKey]; if (!a) return;
+  if (pinHash($("pinInput").value.trim()) === a.pinHash){ setIdentity({ mode:"account", name:a.name, key:loginKey }); enterGame(); }
+  else $("loginMsg").textContent = "Wrong PIN — try again.";
+};
+$("createBtn").onclick = ()=>{
+  const name = $("newName").value.trim(), pin = $("newPin").value.trim(), msg = $("createMsg");
+  if (name.length < 2){ msg.textContent = "Name needs at least 2 characters."; return; }
+  if (!/^\d{4}$/.test(pin)){ msg.textContent = "PIN must be exactly 4 digits."; return; }
+  const key = nameKey(name);
+  if (store.accounts[key]){ msg.textContent = "That name is taken — log in above or pick another name."; return; }
+  store.accounts[key] = { name, pinHash: pinHash(pin), wins:0, losses:0, streak:0, history:[] };
+  saveStore();
+  setIdentity({ mode:"account", name, key });
+  enterGame();
+};
+$("guestBtn").onclick = ()=>{
+  const name = $("guestName").value.trim() || "Guest";
+  setIdentity({ mode:"guest", name, sWins:0, sLosses:0 });
+  enterGame();
+};
+$("idBack").onclick = ()=>$("idModal").classList.remove("show");
+$("profClose").onclick = ()=>$("profileModal").classList.remove("show");
+$("switchBtn").onclick = ()=>{ $("profileModal").classList.remove("show"); openIdentity(); };
+$("deleteBtn").onclick = ()=>{
+  if (!identity || identity.mode !== "account") return;
+  if (!deleteArmed){ deleteArmed = true; $("deleteBtn").textContent = "Tap again to confirm delete"; return; }
+  delete store.accounts[identity.key]; saveStore();
+  identity = null; updateChip();
+  $("profileModal").classList.remove("show"); openIdentity();
+};
+$("newBtn").onclick = ()=>{ if (!busy) showPicker(); };
+$("pickCancel").onclick = ()=>$("pickModal").classList.remove("show");
+$("winAgain").onclick = ()=>{ $("winModal").classList.remove("show"); newGameUI(); };
+$("rulesBtn").onclick = ()=>$("rulesModal").classList.add("show");
+$("rulesClose").onclick = ()=>$("rulesModal").classList.remove("show");
+$("soundBtn").onclick = e=>{ soundOn = !soundOn; e.target.textContent = soundOn ? "🔊" : "🔇"; };
+applyClubs(0, 2);
+buildBoard(); renderAll();
+renderAcctList(); updateChip();
+logMsg("Welcome to Ladu — Premier League edition. Sign in or play as a guest to kick off.");
+</script>
+</body>
+</html>
