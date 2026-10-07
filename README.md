@@ -1,4 +1,4 @@
-# Ladu Online — Premier League edition
+# Ladu Clash — Premier League edition
 
 Your Somali-rules Ludo, playable online with family anywhere. 2v2, club picker
 (Arsenal · Liverpool · Man City · Man United), player accounts with win/loss

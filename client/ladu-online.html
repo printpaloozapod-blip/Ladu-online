@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Ladu — Asad's Rules</title>
+<title>Ladu Clash</title>
 <style>
   :root{
     --red:#e53935; --green:#43a047; --amber:#f9a825; --blue:#1e88e5;
@@ -14,7 +14,7 @@
   body{background:radial-gradient(1200px 620px at 50% -10%, #2e2114, var(--ink) 70%);min-height:100vh;}
   .wrap{max-width:520px;margin:0 auto;padding:10px 10px 26px;}
   header{display:flex;align-items:baseline;justify-content:space-between;padding:4px 2px 8px;}
-  h1{font-size:30px;margin:0;letter-spacing:3px;font-weight:900;}
+  h1{font-size:26px;margin:0;letter-spacing:3px;font-weight:900;}
   h1 .dot{color:var(--amber);}
   .sub{color:var(--dim);font-size:12px;margin-top:2px;}
   .topbtns{display:flex;gap:6px;}
@@ -122,7 +122,7 @@
 <div class="wrap">
   <header>
     <div>
-      <h1>LADU<span class="dot">.</span></h1>
+      <h1>LADU CLASH<span class="dot">.</span></h1>
       <div class="sub" id="subTitle">Online rooms · 2v2</div>
       <button class="chipBtn" id="profileChip">👤 Sign in</button>
     </div>
@@ -853,6 +853,7 @@ function applySnap(snap){
   } else if (snap.phase === "over"){
     $("lobbyModal").classList.remove("show");
     clearStepUI();
+    autoChain = null;
     rollBtn.disabled = true; rollBtn.textContent = "Game over"; rollBtn.classList.remove("ready");
     if (!recordedGame){
       recordedGame = true;
@@ -873,6 +874,7 @@ function applySnap(snap){
     const mineToControl = mySeat >= 0 && owner === mySeat;
     if (snap.phase === "roll"){
       clearStepUI();
+      autoChain = null;
       drawDie($("die0"), 6); drawDie($("die1"), 6);
       $("die0").classList.remove("spent"); $("die1").classList.remove("spent");
       if (mineToControl){
@@ -897,10 +899,36 @@ function applySnap(snap){
 }
 
 /* ---------- step choices (my turn, die by die) ---------- */
+let autoChain = null;  // {piece, turn, seat} while a sole movable piece is auto-playing its roll
+let autoToken = null;  // guards a scheduled auto step against stale snapshots
 function clearStepUI(){
   boardEl.querySelectorAll(".piece").forEach(e => { e.classList.remove("glow"); e.onclick = null; });
   actionsEl.classList.remove("show"); actionsEl.innerHTML = "";
   viewSteps = [];
+  autoToken = null;
+}
+/* When only one piece can move, play the roll without asking which die goes
+   first: prefer a kill, then HOME, then the order that keeps the other die
+   usable for the same piece. */
+function autoPickOnline(options, snap){
+  let best = null, bestScore = -1;
+  options.forEach(a => {
+    let sc = 0;
+    if ((a.kills || []).length) sc += 100 * a.kills.length;
+    if (a.to === HOME) sc += 40;
+    if (a.type === "enter" || a.type === "enterDouble") sc += 30;
+    const rem = (snap.remaining || []).slice();
+    if (a.type === "enterDouble") rem.length = 0;
+    else { const ix = rem.indexOf(a.die); if (ix >= 0) rem.splice(ix, 1); }
+    if (rem.length && S){
+      const ns = cloneState(S); applyAction(ns, snap.controlSeat, a);
+      const next = allowedStepActions(ns, snap.controlSeat, rem, null);
+      if (next.some(n => n.piece === a.piece)) sc += 10;
+      else if (next.length) sc += 4;
+    }
+    if (sc > bestScore){ bestScore = sc; best = a; }
+  });
+  return best;
 }
 function stepLabel(a){
   if (a.type === "enter") return "Bring in (6)";
@@ -914,13 +942,32 @@ function renderStepChoices(steps){
   const owner = lastSnap.controlSeat;
   const byPiece = {};
   steps.forEach(a => { (byPiece[a.piece] = byPiece[a.piece] || []).push(a); });
+  const pieceIds = Object.keys(byPiece);
+  if (pieceIds.length === 1){
+    const pi = +pieceIds[0];
+    if (autoChain && autoChain.piece === pi && autoChain.turn === lastSnap.turn && autoChain.seat === owner){
+      // second die of the same roll, same only piece — play it without another tap
+      const el = $("piece-" + owner + "-" + pi);
+      if (el) el.classList.add("glow");
+      setBanner("Playing your move…");
+      const a = autoPickOnline(byPiece[pi], lastSnap);
+      const tk = {}; autoToken = tk;
+      setTimeout(() => { if (autoToken === tk) sendStep(a); }, 480);
+      return;
+    }
+  } else autoChain = null;
   Object.keys(byPiece).forEach(pi => {
     const el = $("piece-" + owner + "-" + pi);
-    if (el){ el.classList.add("glow"); el.onclick = () => pickPiece(+pi, byPiece[pi]); }
+    if (el){ el.classList.add("glow"); el.onclick = () => pickPiece(+pi, byPiece[pi], pieceIds.length === 1); }
   });
 }
-function pickPiece(pi, options){
+function pickPiece(pi, options, sole){
   if (options.length === 1){ sendStep(options[0]); return; }
+  if (sole){
+    autoChain = { piece: pi, turn: lastSnap.turn, seat: lastSnap.controlSeat };
+    sendStep(autoPickOnline(options, lastSnap));
+    return;
+  }
   actionsEl.innerHTML = '<span class="lbl">Piece ' + (pi + 1) + " — choose:</span>";
   options.forEach(a => {
     const b = document.createElement("button");
@@ -1087,7 +1134,7 @@ COLORS = CLUBS.map(c => c.color); YARDCOLORS = CLUBS.map(c => c.deep);
 CLUBNAMES = CLUBS.map(c => c.name); NAMES = CLUBNAMES.slice();
 buildBoard(); renderAll();
 renderAcctList(); updateChip();
-logMsg("Welcome to Ladu Online. Sign in or play as a guest, then create a room and send the link to your family.");
+logMsg("Welcome to Ladu Clash. Sign in or play as a guest, then create a room and send the link to your family.");
 
 </script>
 </body>

@@ -1,1 +1,1 @@
-{"description":"Ladu — Somali-rules Ludo, Premier League edition, with online rooms (2v2, computer fills empty seats).","engines":{"node":">=18"},"main":"server/server.js","name":"ladu-online","private":true,"scripts":{"start":"node server/server.js"},"version":"1.0.0"}
+{"description":"Ladu Clash — Somali-rules Ludo, Premier League edition, with online rooms (2v2, computer fills empty seats).","engines":{"node":">=18"},"main":"server/server.js","name":"ladu-online","private":true,"scripts":{"start":"node server/server.js"},"version":"1.0.0"}

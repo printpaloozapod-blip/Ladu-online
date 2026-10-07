@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Ladu — Asad's Rules</title>
+<title>Ladu Clash</title>
 <style>
   :root{
     --red:#e53935; --green:#43a047; --amber:#f9a825; --blue:#1e88e5;
@@ -14,7 +14,7 @@
   body{background:radial-gradient(1200px 620px at 50% -10%, #2e2114, var(--ink) 70%);min-height:100vh;}
   .wrap{max-width:520px;margin:0 auto;padding:10px 10px 26px;}
   header{display:flex;align-items:baseline;justify-content:space-between;padding:4px 2px 8px;}
-  h1{font-size:30px;margin:0;letter-spacing:3px;font-weight:900;}
+  h1{font-size:26px;margin:0;letter-spacing:3px;font-weight:900;}
   h1 .dot{color:var(--amber);}
   .sub{color:var(--dim);font-size:12px;margin-top:2px;}
   .topbtns{display:flex;gap:6px;}
@@ -107,7 +107,7 @@
 <div class="wrap">
   <header>
     <div>
-      <h1>LADU<span class="dot">.</span></h1>
+      <h1>LADU CLASH<span class="dot">.</span></h1>
       <div class="sub" id="subTitle">Premier League edition · 2v2</div>
       <button class="chipBtn" id="profileChip">👤 Sign in</button>
     </div>
@@ -904,10 +904,19 @@ async function finishRoll(){
 /* ----- human spending (die by die; only DIRECT one-die kills are forced) ----- */
 async function humanSpend(){
   busy = true;
+  let soleTapped = -1; // the piece tapped when it was the only one that could move
   while (rollCtx && rollCtx.remaining.length){
     const acts = allowedStepActions(S, rollCtx.owner, rollCtx.remaining, rollCtx);
     if (!acts.length) break;
-    const chosen = await waitHumanChoice(acts);
+    const movable = [...new Set(acts.map(a=>a.piece))];
+    let chosen = null;
+    if (movable.length === 1 && soleTapped === movable[0]){
+      await sleep(420); // same piece again for the second die — just play it, visibly
+      chosen = autoPickAction(acts);
+    } else {
+      chosen = await waitHumanChoice(acts, movable.length === 1);
+      if (movable.length === 1) soleTapped = movable[0];
+    }
     if (!chosen) break;
     if (matchesDirectKill(chosen, rollCtx.directKills, rollCtx.movedPieces)) rollCtx.killSatisfied = true;
     rollCtx.movedPieces.push(chosen.piece);
@@ -922,11 +931,35 @@ async function humanSpend(){
   busy = false;
   await finishRoll();
 }
-function waitHumanChoice(acts){
+/* When only one piece can move, play the roll without asking which die goes
+   first: prefer a kill, then HOME, then the order that keeps the other die
+   usable for the same piece. */
+function autoPickAction(acts){
+  let best = null, bestScore = -1;
+  acts.forEach(a=>{
+    let sc = 0;
+    if ((a.kills||[]).length) sc += 100 * a.kills.length;
+    if (a.to === HOME) sc += 40;
+    if (a.type === "enter" || a.type === "enterDouble") sc += 30;
+    const rem = rollCtx.remaining.slice();
+    if (a.type === "enterDouble") rem.length = 0;
+    else { const ix = rem.indexOf(a.die); if (ix >= 0) rem.splice(ix, 1); }
+    if (rem.length){
+      const ns = cloneState(S); applyAction(ns, rollCtx.owner, a);
+      const next = allowedStepActions(ns, rollCtx.owner, rem, null);
+      if (next.some(n=>n.piece === a.piece)) sc += 10;
+      else if (next.length) sc += 4;
+    }
+    if (sc > bestScore){ bestScore = sc; best = a; }
+  });
+  return best;
+}
+function waitHumanChoice(acts, autoSole){
   return new Promise(resolve=>{
     const owner = rollCtx.owner;
     setBanner(rollCtx.mustKill && !rollCtx.killSatisfied ?
       "A DIRECT KILL is on — you must take it. Tap a glowing piece." :
+      autoSole ? "Only one piece can move — tap it and I'll play the whole roll." :
       "Tap a glowing piece to move it.");
     const byPiece = {};
     acts.forEach(a=>{ (byPiece[a.piece] = byPiece[a.piece] || []).push(a); });
@@ -941,6 +974,7 @@ function waitHumanChoice(acts){
     function pick(pi){
       const options = byPiece[pi];
       if (options.length === 1){ cleanup(); resolve(options[0]); return; }
+      if (autoSole){ cleanup(); resolve(autoPickAction(options)); return; }
       actionsEl.innerHTML = '<span class="lbl">Piece '+(pi+1)+' — choose:</span>';
       options.forEach(a=>{
         const b = document.createElement("button");
@@ -1083,7 +1117,7 @@ $("soundBtn").onclick = e=>{ soundOn = !soundOn; e.target.textContent = soundOn 
 applyClubs(0, 2);
 buildBoard(); renderAll();
 renderAcctList(); updateChip();
-logMsg("Welcome to Ladu — Premier League edition. Sign in or play as a guest to kick off.");
+logMsg("Welcome to Ladu Clash — Premier League edition. Sign in or play as a guest to kick off.");
 </script>
 </body>
 </html>
